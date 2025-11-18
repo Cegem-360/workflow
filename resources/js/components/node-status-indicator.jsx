@@ -26,28 +26,12 @@ export const BorderLoadingIndicator = ({
 }) => {
   return (
     <>
-      <div
-        className="absolute -top-px -left-px h-[calc(100%+2px)] w-[calc(100%+2px)]">
-        <style>
-          {`
-        @keyframes spin {
-          from { transform: translate(-50%, -50%) rotate(0deg); }
-          to { transform: translate(-50%, -50%) rotate(360deg); }
-        }
-        .spinner {
-          animation: spin 2s linear infinite;
-          position: absolute;
-          left: 50%;
-          top: 50%;
-          width: 140%;
-          aspect-ratio: 1;
-          transform-origin: center;
-        }
-      `}
-        </style>
+      <div className="absolute -top-px -left-px h-[calc(100%+2px)] w-[calc(100%+2px)]">
         <div className="absolute inset-0 overflow-hidden rounded-[9px]">
           <div
-            className="spinner rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,rgb(42,67,233)_0deg,rgba(42,138,246,0)_360deg)]" />
+            className="absolute left-1/2 top-1/2 w-[140%] aspect-square rounded-full bg-[conic-gradient(from_0deg_at_50%_50%,rgb(42,67,233)_0deg,rgba(42,138,246,0)_360deg)]"
+            style={{ animation: 'spin-centered 2s linear infinite' }}
+          />
         </div>
       </div>
       {children}
