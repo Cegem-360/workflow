@@ -30,6 +30,7 @@ const WorkflowEditor = ({ initialNodes = [], initialEdges = [], onSave }) => {
         nodeConfig,
         colorMode,
         snapToGrid,
+        layoutMode,
         onNodesChange,
         onEdgesChange,
         onConnect,
@@ -49,6 +50,7 @@ const WorkflowEditor = ({ initialNodes = [], initialEdges = [], onSave }) => {
         deleteNodeConnections,
         handleSave,
         toggleSnapToGrid,
+        toggleLayoutMode,
     } = useWorkflowEditor(initialNodes, initialEdges);
 
     return (
@@ -78,6 +80,17 @@ const WorkflowEditor = ({ initialNodes = [], initialEdges = [], onSave }) => {
                     <MiniMap />
                     <Background variant="dots" gap={12} size={1} />
                     <Panel position="top-right" className="flex gap-2">
+                        <button
+                            onClick={toggleLayoutMode}
+                            className={`px-4 py-2 rounded-lg shadow-lg font-medium transition-all hover:scale-105 ${
+                                layoutMode === 'horizontal'
+                                    ? 'bg-purple-500 text-white hover:bg-purple-600'
+                                    : 'bg-indigo-500 text-white hover:bg-indigo-600'
+                            }`}
+                            title={layoutMode === 'horizontal' ? 'Layout: Left → Right' : 'Layout: Top → Bottom'}
+                        >
+                            {layoutMode === 'horizontal' ? '→ Horizontal' : '↓ Vertical'}
+                        </button>
                         <button
                             onClick={toggleSnapToGrid}
                             className={`px-4 py-2 rounded-lg shadow-lg font-medium transition-all hover:scale-105 ${

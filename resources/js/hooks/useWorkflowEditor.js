@@ -16,6 +16,7 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         document.documentElement.classList.contains('dark') ? 'dark' : 'light'
     );
     const [snapToGrid, setSnapToGrid] = useState(true);
+    const [layoutMode, setLayoutMode] = useState('horizontal'); // 'horizontal' or 'vertical'
 
     const handleNodeTrigger = useCallback(async (nodeId, nodeData) => {
         console.log('Node trigger event:', nodeId, nodeData);
@@ -225,10 +226,11 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                     ...node.data,
                     onTrigger: handleNodeTrigger,
                     status: node.data.status || 'initial',
+                    layoutMode: layoutMode,
                 },
             }))
         );
-    }, [handleNodeTrigger, setNodes]);
+    }, [handleNodeTrigger, layoutMode, setNodes]);
 
     useEffect(() => {
         const observer = new MutationObserver(() => {
@@ -317,6 +319,7 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                 config: {},
                 status: 'initial',
                 onTrigger: handleNodeTrigger,
+                layoutMode: layoutMode,
             },
             style: {
                 width: 180,
@@ -440,6 +443,10 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         setSnapToGrid((prev) => !prev);
     }, []);
 
+    const toggleLayoutMode = useCallback(() => {
+        setLayoutMode((prev) => prev === 'horizontal' ? 'vertical' : 'horizontal');
+    }, []);
+
     return {
         nodes,
         edges,
@@ -450,6 +457,7 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         nodeConfig,
         colorMode,
         snapToGrid,
+        layoutMode,
         onNodesChange,
         onEdgesChange,
         onConnect,
@@ -469,5 +477,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         deleteNodeConnections,
         handleSave,
         toggleSnapToGrid,
+        toggleLayoutMode,
     };
 };

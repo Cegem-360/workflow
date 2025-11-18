@@ -8,6 +8,7 @@ const CustomNode = ({ data, selected, id }) => {
     const nodeType = data.type || 'apiAction';
     const nodeStatus = data.status || 'initial';
     const statusVariant = data.statusVariant || 'border';
+    const layoutMode = data.layoutMode || 'horizontal'; // 'horizontal' or 'vertical'
     const isDark = useDarkMode();
 
     const handleTrigger = (e) => {
@@ -59,8 +60,8 @@ const CustomNode = ({ data, selected, id }) => {
                     position: 'relative',
                 }}
             >
-            {/* Top Handles - source overlaid on target so both work from same position */}
-            {nodeType !== 'constant' && (
+            {/* Top Handles - only in vertical mode */}
+            {layoutMode === 'vertical' && nodeType !== 'constant' && (
                 <Handle
                     type="target"
                     position={Position.Top}
@@ -73,35 +74,9 @@ const CustomNode = ({ data, selected, id }) => {
                     }}
                 />
             )}
-            {nodeType !== 'condition' && (
-                <Handle
-                    type="source"
-                    position={Position.Top}
-                    id="top-source"
-                    style={{
-                        background: style.border,
-                        width: '10px',
-                        height: '10px',
-                        border: `2px solid ${style.bg}`,
-                    }}
-                />
-            )}
 
-            {/* Right Handles - source overlaid on target */}
-            {nodeType !== 'constant' && (
-                <Handle
-                    type="target"
-                    position={Position.Right}
-                    id="right-target"
-                    style={{
-                        background: style.border,
-                        width: '10px',
-                        height: '10px',
-                        border: `2px solid ${style.bg}`,
-                    }}
-                />
-            )}
-            {nodeType !== 'condition' && (
+            {/* Right Handles - only in horizontal mode */}
+            {layoutMode === 'horizontal' && nodeType !== 'condition' && (
                 <Handle
                     type="source"
                     position={Position.Right}
@@ -115,12 +90,12 @@ const CustomNode = ({ data, selected, id }) => {
                 />
             )}
 
-            {/* Bottom Handles - source overlaid on target */}
-            {nodeType !== 'constant' && (
+            {/* Bottom Handles - only in vertical mode */}
+            {layoutMode === 'vertical' && nodeType !== 'condition' && (
                 <Handle
-                    type="target"
+                    type="source"
                     position={Position.Bottom}
-                    id="bottom-target"
+                    id="bottom-source"
                     style={{
                         background: style.border,
                         width: '10px',
@@ -129,37 +104,13 @@ const CustomNode = ({ data, selected, id }) => {
                     }}
                 />
             )}
-            <Handle
-                type="source"
-                position={Position.Bottom}
-                id="bottom-source"
-                style={{
-                    background: style.border,
-                    width: '10px',
-                    height: '10px',
-                    border: `2px solid ${style.bg}`,
-                }}
-            />
 
-            {/* Left Handles - source overlaid on target */}
-            {nodeType !== 'constant' && (
+            {/* Left Handles - only in horizontal mode */}
+            {layoutMode === 'horizontal' && nodeType !== 'constant' && (
                 <Handle
                     type="target"
                     position={Position.Left}
                     id="left-target"
-                    style={{
-                        background: style.border,
-                        width: '10px',
-                        height: '10px',
-                        border: `2px solid ${style.bg}`,
-                    }}
-                />
-            )}
-            {nodeType !== 'condition' && (
-                <Handle
-                    type="source"
-                    position={Position.Left}
-                    id="left-source"
                     style={{
                         background: style.border,
                         width: '10px',
