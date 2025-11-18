@@ -5,7 +5,7 @@ import { getNodeTypeStyles } from '@/constants/nodeStyles';
 import NodeTriggerButton from '@/components/node/NodeTriggerButton';
 
 const CustomNode = ({ data, selected, id }) => {
-    const nodeType = data.type || 'action';
+    const nodeType = data.type || 'apiAction';
     const nodeStatus = data.status || 'initial';
     const statusVariant = data.statusVariant || 'border';
     const isDark = useDarkMode();
@@ -18,7 +18,13 @@ const CustomNode = ({ data, selected, id }) => {
     };
 
     const typeStyles = getNodeTypeStyles(isDark);
-    const style = typeStyles[nodeType] || typeStyles.action;
+    // Fallback to apiAction style for backwards compatibility with old 'action' nodes
+    const style = typeStyles[nodeType] || typeStyles.apiAction || {
+        bg: isDark ? '#1e3a8a' : '#dbeafe',
+        border: '#3b82f6',
+        icon: '⚙',
+        textColor: isDark ? '#93c5fd' : '#1e40af'
+    };
 
     return (
         <NodeStatusIndicator status={nodeStatus} variant={statusVariant}>

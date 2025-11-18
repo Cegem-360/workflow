@@ -37,6 +37,53 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
 
             // Handle different action node types
             switch (nodeType) {
+                case 'action':
+                    // Backwards compatibility: old 'action' nodes with actionType config
+                    console.log('[Legacy Action] Old action node detected - treating as API Action');
+                    if (nodeData.config && nodeData.config.url) {
+                        const { method = 'POST', url, requestBody = {}, headers = {} } = nodeData.config;
+
+                        console.log(`[Legacy API Action] Making ${method} request to ${url}`);
+
+                        const config = {
+                            method: method.toLowerCase(),
+                            url: url,
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Accept': 'application/json',
+                                ...headers,
+                            },
+                        };
+
+                        // Add data for POST, PUT, PATCH requests
+                        if (['post', 'put', 'patch'].includes(method.toLowerCase())) {
+                            config.data = requestBody;
+                        }
+
+                        const response = await axios(config);
+
+                        setNodes((nds) =>
+                            nds.map((node) => {
+                                if (node.id === nodeId) {
+                                    return {
+                                        ...node,
+                                        data: {
+                                            ...node.data,
+                                            status: 'success',
+                                            lastResponse: response.data,
+                                        },
+                                    };
+                                }
+                                return node;
+                            })
+                        );
+                        console.log('[Legacy API Action] Success:', response.data);
+                    } else {
+                        console.log('[Legacy Action] Please update this node to use new action types (API Action, Email Action, etc.)');
+                        throw new Error('Legacy action node - please update to new action types');
+                    }
+                    break;
+
                 case 'apiAction':
                     if (nodeData.config && nodeData.config.url) {
                         const { method = 'POST', url, requestBody = {}, headers = {} } = nodeData.config;
