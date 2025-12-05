@@ -60,8 +60,8 @@ const CustomNode = ({ data, selected, id }) => {
                     position: 'relative',
                 }}
             >
-            {/* Top Handles - only in vertical mode */}
-            {layoutMode === 'vertical' && nodeType !== 'constant' && (
+            {/* Top Handles - Target (Input) */}
+            {nodeType !== 'constant' && (
                 <Handle
                     type="target"
                     position={Position.Top}
@@ -71,42 +71,44 @@ const CustomNode = ({ data, selected, id }) => {
                         width: '10px',
                         height: '10px',
                         border: `2px solid ${style.bg}`,
+                        opacity: layoutMode === 'vertical' ? 1 : 0,
+                        pointerEvents: layoutMode === 'vertical' ? 'auto' : 'none',
                     }}
                 />
             )}
 
-            {/* Right Handles - only in horizontal mode */}
-            {layoutMode === 'horizontal' && nodeType !== 'condition' && (
-                <Handle
-                    type="source"
-                    position={Position.Right}
-                    id="right-source"
-                    style={{
-                        background: style.border,
-                        width: '10px',
-                        height: '10px',
-                        border: `2px solid ${style.bg}`,
-                    }}
-                />
-            )}
+            {/* Right Handles - Source (Output) */}
+            <Handle
+                type="source"
+                position={Position.Right}
+                id="right-source"
+                style={{
+                    background: style.border,
+                    width: '10px',
+                    height: '10px',
+                    border: `2px solid ${style.bg}`,
+                    opacity: layoutMode === 'horizontal' ? 1 : 0,
+                    pointerEvents: layoutMode === 'horizontal' ? 'auto' : 'none',
+                }}
+            />
 
-            {/* Bottom Handles - only in vertical mode */}
-            {layoutMode === 'vertical' && nodeType !== 'condition' && (
-                <Handle
-                    type="source"
-                    position={Position.Bottom}
-                    id="bottom-source"
-                    style={{
-                        background: style.border,
-                        width: '10px',
-                        height: '10px',
-                        border: `2px solid ${style.bg}`,
-                    }}
-                />
-            )}
+            {/* Bottom Handles - Source (Output) */}
+            <Handle
+                type="source"
+                position={Position.Bottom}
+                id="bottom-source"
+                style={{
+                    background: style.border,
+                    width: '10px',
+                    height: '10px',
+                    border: `2px solid ${style.bg}`,
+                    opacity: layoutMode === 'vertical' ? 1 : 0,
+                    pointerEvents: layoutMode === 'vertical' ? 'auto' : 'none',
+                }}
+            />
 
-            {/* Left Handles - only in horizontal mode */}
-            {layoutMode === 'horizontal' && nodeType !== 'constant' && (
+            {/* Left Handles - Target (Input) */}
+            {nodeType !== 'constant' && (
                 <Handle
                     type="target"
                     position={Position.Left}
@@ -116,6 +118,8 @@ const CustomNode = ({ data, selected, id }) => {
                         width: '10px',
                         height: '10px',
                         border: `2px solid ${style.bg}`,
+                        opacity: layoutMode === 'horizontal' ? 1 : 0,
+                        pointerEvents: layoutMode === 'horizontal' ? 'auto' : 'none',
                     }}
                 />
             )}

@@ -443,9 +443,101 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         setSnapToGrid((prev) => !prev);
     }, []);
 
+    const autoLayoutNodes = useCallback((currentLayoutMode) => {
+        setNodes((nds) => {
+            if (nds.length === 0) return nds;
+
+            // Build adjacency map from edges
+            const outgoing = new Map();
+            const incoming = new Map();
+
+            edges.forEach(edge => {
+                if (!outgoing.has(edge.source)) outgoing.set(edge.source, []);
+                if (!incoming.has(edge.target)) incoming.set(edge.target, []);
+                outgoing.get(edge.source).push(edge.target);
+                incoming.get(edge.target).push(edge.source);
+            });
+
+            // Find root nodes (no incoming edges)
+            const roots = nds.filter(node => !incoming.has(node.id));
+
+            // If no roots found, use all nodes as potential starts
+            const startNodes = roots.length > 0 ? roots : nds;
+
+            // BFS to assign levels
+            const levels = new Map();
+            const visited = new Set();
+            const queue = startNodes.map(node => ({ id: node.id, level: 0 }));
+
+            while (queue.length > 0) {
+                const { id, level } = queue.shift();
+                if (visited.has(id)) continue;
+
+                visited.add(id);
+                levels.set(id, level);
+
+                const children = outgoing.get(id) || [];
+                children.forEach(childId => {
+                    if (!visited.has(childId)) {
+                        queue.push({ id: childId, level: level + 1 });
+                    }
+                });
+            }
+
+            // Assign unvisited nodes to level 0
+            nds.forEach(node => {
+                if (!levels.has(node.id)) {
+                    levels.set(node.id, 0);
+                }
+            });
+
+            // Group nodes by level
+            const nodesByLevel = new Map();
+            nds.forEach(node => {
+                const level = levels.get(node.id);
+                if (!nodesByLevel.has(level)) {
+                    nodesByLevel.set(level, []);
+                }
+                nodesByLevel.get(level).push(node);
+            });
+
+            // Layout constants
+            const NODE_SPACING = 200;
+            const LEVEL_SPACING = 250;
+
+            // Position nodes based on layout mode
+            return nds.map(node => {
+                const level = levels.get(node.id);
+                const nodesInLevel = nodesByLevel.get(level);
+                const indexInLevel = nodesInLevel.findIndex(n => n.id === node.id);
+
+                let x, y;
+                if (currentLayoutMode === 'horizontal') {
+                    // Horizontal: levels go left to right
+                    x = level * LEVEL_SPACING;
+                    y = indexInLevel * NODE_SPACING;
+                } else {
+                    // Vertical: levels go top to bottom
+                    x = indexInLevel * NODE_SPACING;
+                    y = level * LEVEL_SPACING;
+                }
+
+                return {
+                    ...node,
+                    position: { x, y }
+                };
+            });
+        });
+    }, [edges, setNodes]);
+
     const toggleLayoutMode = useCallback(() => {
-        setLayoutMode((prev) => prev === 'horizontal' ? 'vertical' : 'horizontal');
-    }, []);
+        setLayoutMode((prev) => {
+            const newMode = prev === 'horizontal' ? 'vertical' : 'horizontal';
+            // Auto-layout nodes when switching modes
+            setTimeout(() => autoLayoutNodes(newMode), 0);
+            return newMode;
+        });
+    }, [autoLayoutNodes]);
 
     return {
         nodes,
