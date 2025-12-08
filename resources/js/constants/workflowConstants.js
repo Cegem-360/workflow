@@ -9,6 +9,8 @@ export const nodeTypeConfig = {
     webhookAction: { label: 'Webhook Action', color: '#10b981', bgColor: '#d1fae5' },
     condition: { label: 'Condition', color: '#eab308', bgColor: '#fef9c3' },
     constant: { label: 'Constant', color: '#a855f7', bgColor: '#f3e8ff' },
+    branch: { label: 'Branch', color: '#f97316', bgColor: '#ffedd5' },
+    join: { label: 'Join', color: '#06b6d4', bgColor: '#cffafe' },
     end: { label: 'End', color: '#ef4444', bgColor: '#fee2e2' },
 };
 
@@ -16,10 +18,13 @@ export const defaultEdgeOptions = {
     type: 'floating',
     markerEnd: {
         type: MarkerType.ArrowClosed,
-        width: 20,
-        height: 20,
+        width: 16,
+        height: 16,
+        color: '#9ca3af',
     },
     style: {
-        strokeWidth: 2,
+        strokeWidth: 1.5,
+        stroke: '#9ca3af',
+        strokeDasharray: '6 4',
     },
 };

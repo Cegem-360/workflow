@@ -3,6 +3,29 @@ import { MarkerType, ReactFlowProvider } from '@xyflow/react';
 import WorkflowEditor from '../WorkflowEditor';
 import WorkflowForm from './WorkflowForm';
 
+// Map data types to React Flow node types
+const getReactFlowNodeType = (dataType) => {
+    const actionTypes = ['apiAction', 'emailAction', 'databaseAction', 'scriptAction', 'webhookAction', 'action'];
+    if (actionTypes.includes(dataType)) return 'action';
+    if (['start', 'end', 'condition', 'constant', 'branch', 'join'].includes(dataType)) return dataType;
+    return 'action'; // fallback for old 'custom' nodes
+};
+
+// Get default node dimensions based on type
+const getNodeDimensions = (dataType) => {
+    switch (dataType) {
+        case 'condition':
+            return { width: 120, height: 120 };
+        case 'start':
+        case 'end':
+            return { width: 120, height: 50 };
+        case 'constant':
+            return { width: 140, height: 60 };
+        default:
+            return { width: 180, height: 70 };
+    }
+};
+
 const WorkflowEditorView = ({
     selectedWorkflow,
     workflowName,
@@ -13,20 +36,20 @@ const WorkflowEditorView = ({
     onClose,
     loading,
 }) => {
-    const initialNodes = selectedWorkflow?.nodes?.map((node) => ({
-        id: node.node_id,
-        type: 'custom',
-        position: node.position || { x: 0, y: 0 },
-        data: {
-            ...node.data,
-            label: node.data?.label || node.label,
-            type: node.data?.type || node.type || 'action',
-        },
-        style: node.style || {
-            width: 180,
-            height: 70,
-        },
-    })) || [];
+    const initialNodes = selectedWorkflow?.nodes?.map((node) => {
+        const dataType = node.data?.type || node.type || 'action';
+        return {
+            id: node.node_id,
+            type: getReactFlowNodeType(dataType),
+            position: node.position || { x: 0, y: 0 },
+            data: {
+                ...node.data,
+                label: node.data?.label || node.label,
+                type: dataType,
+            },
+            style: node.style || getNodeDimensions(dataType),
+        };
+    }) || [];
 
     const initialEdges = selectedWorkflow?.connections?.map((conn) => ({
         id: conn.connection_id,

@@ -18,6 +18,8 @@ class WorkflowResource extends Resource
 {
     protected static ?string $model = Workflow::class;
 
+    protected static ?string $tenantOwnershipRelationshipName = 'team';
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     public static function form(Schema $schema): Schema

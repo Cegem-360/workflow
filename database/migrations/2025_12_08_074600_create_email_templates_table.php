@@ -11,13 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('workflows', function (Blueprint $table) {
+        Schema::create('email_templates', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('team_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->text('description')->nullable();
+            $table->string('slug');
+            $table->string('subject');
+            $table->text('body_html');
+            $table->text('body_text')->nullable();
+            $table->json('variables')->nullable();
             $table->boolean('is_active')->default(true);
-            $table->json('metadata')->nullable();
             $table->timestamps();
+
+            $table->unique(['team_id', 'slug']);
         });
     }
 
@@ -26,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('workflows');
+        Schema::dropIfExists('email_templates');
     }
 };

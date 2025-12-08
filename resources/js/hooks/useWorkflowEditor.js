@@ -1,7 +1,34 @@
 import { useCallback, useState, useEffect } from 'react';
 import { useNodesState, useEdgesState, addEdge, useReactFlow } from '@xyflow/react';
 import { nodeTypeConfig } from '@/constants/workflowConstants';
+import { getLayoutedElements } from '@/utils/elkLayout';
 import axios from 'axios';
+
+// Map data types to React Flow node types
+const getReactFlowNodeType = (dataType) => {
+    const actionTypes = ['apiAction', 'emailAction', 'databaseAction', 'scriptAction', 'webhookAction', 'action'];
+    if (actionTypes.includes(dataType)) return 'action';
+    if (['start', 'end', 'condition', 'constant', 'branch', 'join'].includes(dataType)) return dataType;
+    return 'action'; // fallback
+};
+
+// Get default node dimensions based on type
+const getNodeDimensions = (nodeType) => {
+    switch (nodeType) {
+        case 'condition':
+            return { width: 120, height: 120 };
+        case 'start':
+        case 'end':
+            return { width: 120, height: 50 };
+        case 'constant':
+            return { width: 140, height: 60 };
+        case 'branch':
+        case 'join':
+            return { width: 220, height: 70 };
+        default:
+            return { width: 180, height: 70 };
+    }
+};
 
 export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
     const { screenToFlowPosition } = useReactFlow();
@@ -16,7 +43,46 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         document.documentElement.classList.contains('dark') ? 'dark' : 'light'
     );
     const [snapToGrid, setSnapToGrid] = useState(true);
-    const [layoutMode, setLayoutMode] = useState('horizontal'); // 'horizontal' or 'vertical'
+
+    const handleNodeDelete = useCallback((nodeId) => {
+        setNodes((nds) => nds.filter((node) => node.id !== nodeId));
+        setEdges((eds) =>
+            eds.filter(
+                (edge) => edge.source !== nodeId && edge.target !== nodeId
+            )
+        );
+        setSelectedNode(null);
+    }, [setNodes, setEdges]);
+
+    // Update branch node outputs
+    const handleUpdateOutputs = useCallback((nodeId, outputs) => {
+        setNodes((nds) =>
+            nds.map((node) => {
+                if (node.id === nodeId) {
+                    return {
+                        ...node,
+                        data: { ...node.data, outputs },
+                    };
+                }
+                return node;
+            })
+        );
+    }, [setNodes]);
+
+    // Update join node inputs
+    const handleUpdateInputs = useCallback((nodeId, inputs) => {
+        setNodes((nds) =>
+            nds.map((node) => {
+                if (node.id === nodeId) {
+                    return {
+                        ...node,
+                        data: { ...node.data, inputs },
+                    };
+                }
+                return node;
+            })
+        );
+    }, [setNodes]);
 
     const handleNodeTrigger = useCallback(async (nodeId, nodeData) => {
         console.log('Node trigger event:', nodeId, nodeData);
@@ -181,8 +247,85 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                     console.log('[Webhook Action] Not yet implemented');
                     throw new Error('Webhook action is not yet implemented');
 
+                case 'condition':
+                    {
+                        const config = nodeData.config || {};
+                        const { operator = 'equals', valueA, valueB } = config;
+
+                        console.log(`[Condition] Evaluating: ${valueA} ${operator} ${valueB}`);
+
+                        let result = false;
+
+                        // Convert values for comparison
+                        const a = valueA;
+                        const b = valueB;
+                        const numA = parseFloat(a);
+                        const numB = parseFloat(b);
+
+                        switch (operator) {
+                            case 'equals':
+                                result = a == b;
+                                break;
+                            case 'strictEquals':
+                                result = a === b;
+                                break;
+                            case 'notEquals':
+                                result = a != b;
+                                break;
+                            case 'greaterThan':
+                                result = numA > numB;
+                                break;
+                            case 'lessThan':
+                                result = numA < numB;
+                                break;
+                            case 'greaterOrEqual':
+                                result = numA >= numB;
+                                break;
+                            case 'lessOrEqual':
+                                result = numA <= numB;
+                                break;
+                            case 'contains':
+                                result = String(a).includes(String(b));
+                                break;
+                            case 'isEmpty':
+                                result = a === '' || a === null || a === undefined;
+                                break;
+                            case 'isNotEmpty':
+                                result = a !== '' && a !== null && a !== undefined;
+                                break;
+                            case 'isTrue':
+                                result = a === true || a === 'true' || a === 1 || a === '1';
+                                break;
+                            case 'isFalse':
+                                result = a === false || a === 'false' || a === 0 || a === '0';
+                                break;
+                            default:
+                                result = false;
+                        }
+
+                        console.log(`[Condition] Result: ${result ? 'TRUE ✓' : 'FALSE ✗'}`);
+
+                        setNodes((nds) =>
+                            nds.map((node) => {
+                                if (node.id === nodeId) {
+                                    return {
+                                        ...node,
+                                        data: {
+                                            ...node.data,
+                                            status: 'success',
+                                            conditionResult: result,
+                                            lastEvaluation: { valueA: a, valueB: b, operator, result },
+                                        },
+                                    };
+                                }
+                                return node;
+                            })
+                        );
+                    }
+                    break;
+
                 default:
-                    // Fallback for non-action nodes (start, condition, constant, end)
+                    // Fallback for non-action nodes (start, constant, end)
                     console.log(`[${nodeType}] Node triggered (no action logic)`);
                     await new Promise((resolve) => setTimeout(resolve, 1000));
                     setNodes((nds) =>
@@ -225,12 +368,14 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                 data: {
                     ...node.data,
                     onTrigger: handleNodeTrigger,
+                    onDelete: handleNodeDelete,
+                    onUpdateOutputs: handleUpdateOutputs,
+                    onUpdateInputs: handleUpdateInputs,
                     status: node.data.status || 'initial',
-                    layoutMode: layoutMode,
                 },
             }))
         );
-    }, [handleNodeTrigger, layoutMode, setNodes]);
+    }, [handleNodeTrigger, handleNodeDelete, handleUpdateOutputs, handleUpdateInputs, setNodes]);
 
     useEffect(() => {
         const observer = new MutationObserver(() => {
@@ -272,11 +417,14 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                     return eds;
                 }
 
-                const targetHasInput = eds.some(edge => edge.target === params.target);
+                // Check if the specific target handle already has a connection
+                const targetHandleHasInput = eds.some(edge =>
+                    edge.target === params.target && edge.targetHandle === params.targetHandle
+                );
 
-                if (targetHasInput) {
-                    console.log('Target node already has an incoming connection');
-                    alert('This node already has an incoming connection. Each node can only have one input.');
+                if (targetHandleHasInput) {
+                    console.log('Target handle already has an incoming connection');
+                    alert('This input already has a connection.');
                     return eds;
                 }
 
@@ -299,36 +447,51 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
     const onDrop = useCallback((event) => {
         event.preventDefault();
 
-        const nodeType = event.dataTransfer.getData('application/reactflow');
-        if (!nodeType) return;
+        const dataType = event.dataTransfer.getData('application/reactflow');
+        if (!dataType) return;
 
         const position = screenToFlowPosition({
             x: event.clientX,
             y: event.clientY,
         });
 
-        const nodeTypeInfo = nodeTypeConfig[nodeType];
+        const nodeTypeInfo = nodeTypeConfig[dataType];
+        const reactFlowType = getReactFlowNodeType(dataType);
+        const dimensions = getNodeDimensions(dataType);
+
+        // Set default outputs/inputs for branch/join nodes
+        const nodeData = {
+            label: `${nodeTypeInfo.label} Node`,
+            type: dataType,
+            description: '',
+            config: {},
+            status: 'initial',
+            onTrigger: handleNodeTrigger,
+            onDelete: handleNodeDelete,
+            onUpdateOutputs: handleUpdateOutputs,
+            onUpdateInputs: handleUpdateInputs,
+        };
+
+        // Add default outputs for branch nodes
+        if (dataType === 'branch') {
+            nodeData.outputs = ['output-1', 'output-2'];
+        }
+
+        // Add default inputs for join nodes
+        if (dataType === 'join') {
+            nodeData.inputs = ['input-1', 'input-2'];
+        }
+
         const newNode = {
             id: `node-${Date.now()}`,
-            type: 'custom',
+            type: reactFlowType,
             position,
-            data: {
-                label: `${nodeTypeInfo.label} Node`,
-                type: nodeType,
-                description: '',
-                config: {},
-                status: 'initial',
-                onTrigger: handleNodeTrigger,
-                layoutMode: layoutMode,
-            },
-            style: {
-                width: 180,
-                height: 70,
-            },
+            data: nodeData,
+            style: dimensions,
         };
 
         setNodes((nds) => [...nds, newNode]);
-    }, [screenToFlowPosition, setNodes, handleNodeTrigger]);
+    }, [screenToFlowPosition, setNodes, handleNodeTrigger, handleNodeDelete, handleUpdateOutputs, handleUpdateInputs]);
 
     const onNodeClick = useCallback((event, node) => {
         setSelectedNode(node);
@@ -374,7 +537,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
 
     const deleteSelectedNode = useCallback(() => {
         if (!selectedNode) return;
-        if (!confirm('Are you sure you want to delete this node?')) return;
 
         setNodes((nds) => nds.filter((node) => node.id !== selectedNode.id));
         setEdges((eds) =>
@@ -394,7 +556,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
 
     const deleteNodeConnections = useCallback(() => {
         if (!selectedNode) return;
-        if (!confirm('Delete all connections for this node?')) return;
 
         setEdges((eds) =>
             eds.filter(
@@ -407,10 +568,17 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
     useEffect(() => {
         const handleKeyDown = (event) => {
             if (event.key === 'Delete' || event.key === 'Backspace') {
-                if (selectedEdge &&
-                    event.target.tagName !== 'INPUT' &&
-                    event.target.tagName !== 'TEXTAREA') {
-                    event.preventDefault();
+                // Don't trigger when typing in input fields
+                if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA') {
+                    return;
+                }
+
+                event.preventDefault();
+
+                // Priority: delete selected node first, then edge
+                if (selectedNode) {
+                    deleteSelectedNode();
+                } else if (selectedEdge) {
                     deleteSelectedEdge();
                 }
             }
@@ -418,7 +586,7 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [selectedEdge, deleteSelectedEdge]);
+    }, [selectedNode, selectedEdge, deleteSelectedNode, deleteSelectedEdge]);
 
     const handleSave = useCallback((onSave) => {
         const workflowData = {
@@ -443,105 +611,22 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         setSnapToGrid((prev) => !prev);
     }, []);
 
-    const autoLayoutNodes = useCallback((currentLayoutMode) => {
-        setNodes((nds) => {
-            if (nds.length === 0) return nds;
+    const autoLayoutNodes = useCallback(async () => {
+        if (nodes.length === 0) return;
 
-            // Build adjacency map from edges
-            const outgoing = new Map();
-            const incoming = new Map();
-
-            edges.forEach(edge => {
-                if (!outgoing.has(edge.source)) outgoing.set(edge.source, []);
-                if (!incoming.has(edge.target)) incoming.set(edge.target, []);
-                outgoing.get(edge.source).push(edge.target);
-                incoming.get(edge.target).push(edge.source);
-            });
-
-            // Find root nodes (no incoming edges)
-            const roots = nds.filter(node => !incoming.has(node.id));
-
-            // If no roots found, use all nodes as potential starts
-            const startNodes = roots.length > 0 ? roots : nds;
-
-            // BFS to assign levels
-            const levels = new Map();
-            const visited = new Set();
-            const queue = startNodes.map(node => ({ id: node.id, level: 0 }));
-
-            while (queue.length > 0) {
-                const { id, level } = queue.shift();
-                if (visited.has(id)) continue;
-
-                visited.add(id);
-                levels.set(id, level);
-
-                const children = outgoing.get(id) || [];
-                children.forEach(childId => {
-                    if (!visited.has(childId)) {
-                        queue.push({ id: childId, level: level + 1 });
-                    }
-                });
-            }
-
-            // Assign unvisited nodes to level 0
-            nds.forEach(node => {
-                if (!levels.has(node.id)) {
-                    levels.set(node.id, 0);
-                }
-            });
-
-            // Group nodes by level
-            const nodesByLevel = new Map();
-            nds.forEach(node => {
-                const level = levels.get(node.id);
-                if (!nodesByLevel.has(level)) {
-                    nodesByLevel.set(level, []);
-                }
-                nodesByLevel.get(level).push(node);
-            });
-
-            // Layout constants
-            const NODE_SPACING = 200;
-            const LEVEL_SPACING = 250;
-
-            // Position nodes based on layout mode
-            return nds.map(node => {
-                const level = levels.get(node.id);
-                const nodesInLevel = nodesByLevel.get(level);
-                const indexInLevel = nodesInLevel.findIndex(n => n.id === node.id);
-
-                let x, y;
-                if (currentLayoutMode === 'horizontal') {
-                    // Horizontal: levels go left to right
-                    x = level * LEVEL_SPACING;
-                    y = indexInLevel * NODE_SPACING;
-                } else {
-                    // Vertical: levels go top to bottom
-                    x = indexInLevel * NODE_SPACING;
-                    y = level * LEVEL_SPACING;
-                }
-
-                return {
-                    ...node,
-                    position: { x, y }
-                };
-            });
-        });
-    }, [edges, setNodes]);
-
-    const toggleLayoutMode = useCallback(() => {
-        setLayoutMode((prev) => {
-            const newMode = prev === 'horizontal' ? 'vertical' : 'horizontal';
-            // Auto-layout nodes when switching modes
-            setTimeout(() => autoLayoutNodes(newMode), 0);
-            return newMode;
-        });
-    }, [autoLayoutNodes]);
+        try {
+            const { nodes: layoutedNodes } = await getLayoutedElements(nodes, edges, 'DOWN');
+            setNodes(layoutedNodes);
+        } catch (error) {
+            console.error('Auto-layout failed:', error);
+        }
+    }, [nodes, edges, setNodes]);
 
     return {
         nodes,
         edges,
+        setNodes,
+        setEdges,
         selectedNode,
         selectedEdge,
         nodeLabel,
@@ -549,7 +634,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         nodeConfig,
         colorMode,
         snapToGrid,
-        layoutMode,
         onNodesChange,
         onEdgesChange,
         onConnect,
@@ -569,6 +653,10 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         deleteNodeConnections,
         handleSave,
         toggleSnapToGrid,
-        toggleLayoutMode,
+        autoLayoutNodes,
+        handleNodeTrigger,
+        handleNodeDelete,
+        handleUpdateOutputs,
+        handleUpdateInputs,
     };
 };
