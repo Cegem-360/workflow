@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react';
 
-export const useWorkflowRunner = (nodes, edges, setNodes, setEdges) => {
+export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = null) => {
     const [isRunning, setIsRunning] = useState(false);
     const [currentNodeId, setCurrentNodeId] = useState(null);
     const [executionPath, setExecutionPath] = useState([]);
@@ -237,6 +237,50 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges) => {
 
                 console.log('[Runner] Email sent successfully:', emailData);
                 return { success: true, output: emailData };
+            }
+
+            case 'googleCalendarAction': {
+                if (!teamId) {
+                    throw new Error('Team ID is required for Google Calendar actions');
+                }
+
+                if (!config.operation) {
+                    throw new Error('Google Calendar action requires an operation');
+                }
+
+                console.log('[Runner] Executing Google Calendar action:', config);
+
+                const calendarResponse = await fetch('/api/workflows/actions/google-calendar', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        team_id: teamId,
+                        operation: config.operation,
+                        calendarId: config.calendarId || 'primary',
+                        summary: config.summary,
+                        description: config.description,
+                        startDateTime: config.startDateTime,
+                        endDateTime: config.endDateTime,
+                        location: config.location,
+                        attendees: config.attendees,
+                        eventId: config.eventId,
+                        timeMin: config.timeMin,
+                        timeMax: config.timeMax,
+                        maxResults: config.maxResults,
+                    }),
+                });
+
+                const calendarData = await calendarResponse.json();
+
+                if (!calendarResponse.ok || !calendarData.success) {
+                    throw new Error(calendarData.error || 'Failed to execute Google Calendar action');
+                }
+
+                console.log('[Runner] Google Calendar action completed:', calendarData);
+                return { success: true, output: calendarData.data };
             }
 
             default:

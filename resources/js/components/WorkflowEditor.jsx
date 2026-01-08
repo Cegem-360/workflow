@@ -230,7 +230,7 @@ const WorkflowEditor = ({ initialNodes = [], initialEdges = [], onSave, teamId }
         isRunning,
         runWorkflow,
         resetExecution,
-    } = useWorkflowRunner(nodes, edges, setNodes, setEdges);
+    } = useWorkflowRunner(nodes, edges, setNodes, setEdges, teamId);
 
     // Toast notifications
     const toast = useToast();

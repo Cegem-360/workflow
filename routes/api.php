@@ -10,6 +10,7 @@ Route::apiResource('workflows', WorkflowController::class);
 Route::get('email-templates', [WorkflowController::class, 'emailTemplates']);
 Route::get('schedule-options', [WorkflowController::class, 'scheduleOptions']);
 Route::post('workflows/actions/email', [WorkflowController::class, 'sendEmail']);
+Route::post('workflows/actions/google-calendar', [WorkflowController::class, 'executeGoogleCalendar']);
 
 Route::get('teams', fn () => Team::all(['id', 'name']));
 

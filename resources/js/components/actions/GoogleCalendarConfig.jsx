@@ -15,9 +15,12 @@ const GoogleCalendarConfig = ({ config, onChange, teamId }) => {
     const [maxResults, setMaxResults] = useState(config.maxResults || 10);
 
     const [calendars, setCalendars] = useState([]);
+    const [events, setEvents] = useState([]);
+    const [eventsLoading, setEventsLoading] = useState(false);
     const [connectionStatus, setConnectionStatus] = useState(null);
     const [loading, setLoading] = useState(true);
     const [connectingUrl, setConnectingUrl] = useState(null);
+    const [useManualEventId, setUseManualEventId] = useState(false);
 
     useEffect(() => {
         setOperation(config.operation || 'create');
@@ -121,6 +124,42 @@ const GoogleCalendarConfig = ({ config, onChange, teamId }) => {
             console.error('Failed to fetch calendars:', error);
         }
     };
+
+    const fetchEvents = async () => {
+        if (!connectionStatus?.connected || !teamId) return;
+
+        try {
+            setEventsLoading(true);
+            // Get events from 30 days ago to include recent past events
+            const timeMin = new Date();
+            timeMin.setDate(timeMin.getDate() - 30);
+
+            const params = new URLSearchParams({
+                team_id: teamId,
+                calendar_id: calendarId,
+                max_results: '50',
+                time_min: timeMin.toISOString(),
+            });
+
+            const response = await fetch(`/api/google/events?${params}`);
+            if (response.ok) {
+                const data = await response.json();
+                // Backend returns array directly, not wrapped in 'items'
+                setEvents(Array.isArray(data) ? data : []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch events:', error);
+        } finally {
+            setEventsLoading(false);
+        }
+    };
+
+    // Fetch events when calendar changes and operation needs events
+    useEffect(() => {
+        if ((operation === 'update' || operation === 'delete') && connectionStatus?.connected) {
+            fetchEvents();
+        }
+    }, [calendarId, operation, connectionStatus?.connected]);
 
     const handleConnect = async () => {
         try {
@@ -319,19 +358,79 @@ const GoogleCalendarConfig = ({ config, onChange, teamId }) => {
 
             {(operation === 'update' || operation === 'delete') && (
                 <div>
-                    <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">
-                        Event ID
-                    </label>
-                    <input
-                        type="text"
-                        value={eventId}
-                        onChange={(e) => setEventId(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        placeholder="Event ID or {{{input.eventId}}}"
-                    />
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                        Use {'{{{input.eventId}}}'} to get the ID from a previous node
-                    </p>
+                    <div className="flex items-center justify-between mb-2">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Event
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => setUseManualEventId(!useManualEventId)}
+                            className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                        >
+                            {useManualEventId ? 'Select from list' : 'Enter manually'}
+                        </button>
+                    </div>
+
+                    {useManualEventId ? (
+                        <>
+                            <input
+                                type="text"
+                                value={eventId}
+                                onChange={(e) => setEventId(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                placeholder="Event ID or {{{input.eventId}}}"
+                            />
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Use {'{{{input.eventId}}}'} to get the ID from a previous node
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <div className="relative">
+                                <select
+                                    value={eventId}
+                                    onChange={(e) => setEventId(e.target.value)}
+                                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                    disabled={eventsLoading}
+                                >
+                                    <option value="">
+                                        {eventsLoading ? 'Loading events...' : 'Select an event'}
+                                    </option>
+                                    {events.map((event) => (
+                                        <option key={event.id} value={event.id}>
+                                            {event.summary || '(No title)'} -{' '}
+                                            {event.start
+                                                ? new Date(event.start).toLocaleDateString('hu-HU', {
+                                                      month: 'short',
+                                                      day: 'numeric',
+                                                      hour: '2-digit',
+                                                      minute: '2-digit',
+                                                  })
+                                                : 'No date'}
+                                        </option>
+                                    ))}
+                                </select>
+                                {eventsLoading && (
+                                    <div className="absolute right-8 top-1/2 transform -translate-y-1/2">
+                                        <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="flex items-center justify-between mt-1">
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                    Showing up to 50 upcoming events
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={fetchEvents}
+                                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400"
+                                    disabled={eventsLoading}
+                                >
+                                    Refresh
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             )}
 

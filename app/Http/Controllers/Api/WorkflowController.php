@@ -274,4 +274,102 @@ class WorkflowController extends Controller
 
         return response()->json($options);
     }
+
+    public function executeGoogleCalendar(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'team_id' => 'required|exists:teams,id',
+            'operation' => 'required|in:create,list,update,delete',
+            'calendarId' => 'nullable|string',
+            'summary' => 'nullable|string',
+            'description' => 'nullable|string',
+            'location' => 'nullable|string',
+            'startDateTime' => 'nullable|string',
+            'endDateTime' => 'nullable|string',
+            'attendees' => 'nullable|string',
+            'eventId' => 'nullable|string',
+            'timeMin' => 'nullable|string',
+            'timeMax' => 'nullable|string',
+            'maxResults' => 'nullable|integer',
+        ]);
+
+        try {
+            $team = Team::findOrFail($validated['team_id']);
+
+            if (! $team->hasGoogleCalendarConnected()) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Google Calendar is not connected for this team',
+                ], 400);
+            }
+
+            $calendarService = app(\App\Services\Google\GoogleCalendarService::class);
+            $calendarId = $validated['calendarId'] ?? 'primary';
+            $operation = $validated['operation'];
+
+            $result = match ($operation) {
+                'create' => $calendarService->createEvent($team, $calendarId, [
+                    'summary' => $validated['summary'] ?? '',
+                    'description' => $validated['description'] ?? '',
+                    'location' => $validated['location'] ?? '',
+                    'start' => [
+                        'dateTime' => $validated['startDateTime'] ?? now()->toIso8601String(),
+                        'timeZone' => config('app.timezone', 'Europe/Budapest'),
+                    ],
+                    'end' => [
+                        'dateTime' => $validated['endDateTime'] ?? now()->addHour()->toIso8601String(),
+                        'timeZone' => config('app.timezone', 'Europe/Budapest'),
+                    ],
+                    'attendees' => $this->parseAttendees($validated['attendees'] ?? ''),
+                ]),
+                'list' => $calendarService->listEvents($team, $calendarId, [
+                    'timeMin' => $validated['timeMin'] ?? null,
+                    'timeMax' => $validated['timeMax'] ?? null,
+                    'maxResults' => $validated['maxResults'] ?? 10,
+                ]),
+                'update' => $calendarService->updateEvent(
+                    $team,
+                    $calendarId,
+                    $validated['eventId'] ?? '',
+                    array_filter([
+                        'summary' => $validated['summary'] ?? null,
+                        'description' => $validated['description'] ?? null,
+                        'location' => $validated['location'] ?? null,
+                        'start' => isset($validated['startDateTime']) ? [
+                            'dateTime' => $validated['startDateTime'],
+                            'timeZone' => config('app.timezone', 'Europe/Budapest'),
+                        ] : null,
+                        'end' => isset($validated['endDateTime']) ? [
+                            'dateTime' => $validated['endDateTime'],
+                            'timeZone' => config('app.timezone', 'Europe/Budapest'),
+                        ] : null,
+                    ])
+                ),
+                'delete' => $calendarService->deleteEvent($team, $calendarId, $validated['eventId'] ?? ''),
+            };
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    protected function parseAttendees(string $attendees): array
+    {
+        if (empty($attendees)) {
+            return [];
+        }
+
+        return collect(explode(',', $attendees))
+            ->map(fn ($email) => ['email' => trim($email)])
+            ->filter(fn ($a) => filter_var($a['email'], FILTER_VALIDATE_EMAIL))
+            ->values()
+            ->toArray();
+    }
 }
