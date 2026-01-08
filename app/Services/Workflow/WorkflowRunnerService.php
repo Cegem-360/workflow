@@ -5,6 +5,7 @@ namespace App\Services\Workflow;
 use App\Models\Workflow;
 use App\Models\WorkflowNode;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -419,11 +420,11 @@ class WorkflowRunnerService
 
         try {
             $result = match ($operation) {
-                'select' => \DB::table($table)->get(),
-                'insert' => \DB::table($table)->insert($config['data'] ?? []),
-                'update' => \DB::table($table)->where($config['where'] ?? [])->update($config['data'] ?? []),
-                'delete' => \DB::table($table)->where($config['where'] ?? [])->delete(),
-                'raw' => \DB::select($query),
+                'select' => DB::table($table)->get(),
+                'insert' => DB::table($table)->insert($config['data'] ?? []),
+                'update' => DB::table($table)->where($config['where'] ?? [])->update($config['data'] ?? []),
+                'delete' => DB::table($table)->where($config['where'] ?? [])->delete(),
+                'raw' => DB::select($query),
                 default => null,
             };
 
