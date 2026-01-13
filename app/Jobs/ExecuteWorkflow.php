@@ -17,14 +17,15 @@ class ExecuteWorkflow implements ShouldQueue
     public int $backoff = 60;
 
     public function __construct(
-        public Workflow $workflow
+        public Workflow $workflow,
+        public ?array $webhookPayload = null
     ) {}
 
     public function handle(WorkflowRunnerService $runner): void
     {
         Log::channel('workflow')->info("Job started for workflow: {$this->workflow->name} (ID: {$this->workflow->id})");
 
-        $result = $runner->execute($this->workflow);
+        $result = $runner->execute($this->workflow, $this->webhookPayload);
 
         if ($result['success']) {
             Log::channel('workflow')->info("Workflow {$this->workflow->id} completed successfully");

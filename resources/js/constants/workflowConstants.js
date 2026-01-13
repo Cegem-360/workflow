@@ -2,6 +2,7 @@ import { MarkerType } from "@xyflow/react";
 
 export const nodeTypeConfig = {
     start: { label: "Start", color: "#22c55e", bgColor: "#dcfce7" },
+    webhookTrigger: { label: "Webhook Trigger", color: "#f97316", bgColor: "#ffedd5" },
     apiAction: { label: "API Action", color: "#3b82f6", bgColor: "#dbeafe" },
     emailAction: {
         label: "Email Action",

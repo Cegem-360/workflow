@@ -9,6 +9,7 @@ import MergeNode from "./MergeNode";
 import GoogleCalendarNode from "./GoogleCalendarNode";
 import GoogleDocsNode from "./GoogleDocsNode";
 import TemplateNode from "./TemplateNode";
+import WebhookTriggerNode from "./WebhookTriggerNode";
 
 export {
     ActionNode,
@@ -22,6 +23,7 @@ export {
     GoogleCalendarNode,
     GoogleDocsNode,
     TemplateNode,
+    WebhookTriggerNode,
 };
 
 export const nodeTypes = {
@@ -36,6 +38,7 @@ export const nodeTypes = {
     googleCalendar: GoogleCalendarNode,
     googleDocs: GoogleDocsNode,
     template: TemplateNode,
+    webhookTrigger: WebhookTriggerNode,
 };
 
 export default nodeTypes;

@@ -3,11 +3,16 @@
 use App\Http\Controllers\Api\GoogleCalendarController;
 use App\Http\Controllers\Api\GoogleDocsController;
 use App\Http\Controllers\Api\GoogleOAuthController;
+use App\Http\Controllers\Api\WebhookController;
 use App\Http\Controllers\Api\WorkflowController;
 use App\Models\Team;
 use Illuminate\Support\Facades\Route;
 
+// Webhook trigger endpoint (no auth required)
+Route::post('webhooks/{token}', [WebhookController::class, 'trigger']);
+
 Route::apiResource('workflows', WorkflowController::class);
+Route::post('workflows/{workflow}/generate-webhook-token', [WorkflowController::class, 'generateWebhookToken']);
 Route::get('email-templates', [WorkflowController::class, 'emailTemplates']);
 Route::get('schedule-options', [WorkflowController::class, 'scheduleOptions']);
 Route::post('workflows/actions/email', [WorkflowController::class, 'sendEmail']);

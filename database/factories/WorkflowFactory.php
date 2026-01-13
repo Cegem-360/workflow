@@ -42,4 +42,12 @@ class WorkflowFactory extends Factory
             'schedule_cron' => $cron,
         ]);
     }
+
+    public function withWebhook(?string $token = null): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'webhook_enabled' => true,
+            'webhook_token' => $token ?? \Illuminate\Support\Str::random(40),
+        ]);
+    }
 }

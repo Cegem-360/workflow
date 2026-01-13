@@ -86,9 +86,11 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
     const [currentNodeId, setCurrentNodeId] = useState(null);
     const [executionPath, setExecutionPath] = useState([]);
 
-    // Find all start nodes
+    // Find all start nodes (including webhook triggers)
     const findStartNodes = useCallback(() => {
-        return nodes.filter((node) => node.data.type === "start");
+        return nodes.filter(
+            (node) => node.data.type === "start" || node.data.type === "webhookTrigger",
+        );
     }, [nodes]);
 
     // Find connected nodes from a source node
@@ -233,6 +235,10 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
             switch (nodeType) {
                 case "start":
                     return { success: true, output: config.value || true };
+
+                case "webhookTrigger":
+                    // In frontend simulation, return test payload or empty object
+                    return { success: true, output: config.testPayload || {} };
 
                 case "end":
                     return { success: true, finished: true };
@@ -947,6 +953,10 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
             switch (nodeType) {
                 case "start":
                     return { success: true, output: config.value || true };
+
+                case "webhookTrigger":
+                    // In frontend simulation, return test payload or empty object
+                    return { success: true, output: config.testPayload || {} };
 
                 case "end":
                     return { success: true, finished: true };

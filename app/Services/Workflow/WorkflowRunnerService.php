@@ -30,7 +30,9 @@ class WorkflowRunnerService
 
     protected array $pendingJoinNodes = [];
 
-    public function execute(Workflow $workflow): array
+    protected ?array $webhookPayload = null;
+
+    public function execute(Workflow $workflow, ?array $webhookPayload = null): array
     {
         $this->workflow = $workflow;
         $this->nodes = $workflow->nodes;
@@ -40,6 +42,7 @@ class WorkflowRunnerService
         $this->failedNodes = [];
         $this->executionLog = [];
         $this->pendingJoinNodes = [];
+        $this->webhookPayload = $webhookPayload;
 
         $this->log('info', "Starting workflow execution: {$workflow->name}");
 
@@ -172,8 +175,9 @@ class WorkflowRunnerService
     {
         return $this->nodes->filter(function ($node) {
             $data = $node->data ?? [];
+            $type = $data['type'] ?? $node->type;
 
-            return ($data['type'] ?? $node->type) === 'start';
+            return $type === 'start' || $type === 'webhookTrigger';
         });
     }
 
@@ -257,6 +261,7 @@ class WorkflowRunnerService
 
         return match ($nodeType) {
             'start' => $this->executeStartNode($config),
+            'webhookTrigger' => $this->executeWebhookTriggerNode($config),
             'end' => $this->executeEndNode(),
             'constant' => $this->executeConstantNode($config),
             'condition' => $this->executeConditionNode($config, $inputValues),
@@ -278,6 +283,21 @@ class WorkflowRunnerService
     protected function executeStartNode(array $config): array
     {
         return ['success' => true, 'output' => $config['value'] ?? true];
+    }
+
+    protected function executeWebhookTriggerNode(array $config): array
+    {
+        $output = $this->webhookPayload ?? [];
+
+        // If outputPath is specified, extract that specific path from the payload
+        $outputPath = $config['outputPath'] ?? null;
+        if ($outputPath && is_array($output)) {
+            $output = $this->getNestedValue($output, $outputPath) ?? $output;
+        }
+
+        $this->log('info', 'Webhook trigger executed with payload: '.json_encode($output));
+
+        return ['success' => true, 'output' => $output];
     }
 
     protected function executeEndNode(): array

@@ -10,6 +10,7 @@ import GoogleDocsConfig from "../actions/GoogleDocsConfig";
 import MergeNodeConfig from "../actions/MergeNodeConfig";
 import TemplateNodeConfig from "../actions/TemplateNodeConfig";
 import ConditionConfig from "../actions/ConditionConfig";
+import WebhookTriggerConfig from "../actions/WebhookTriggerConfig";
 
 const WorkflowPropertiesPanel = ({
     selectedNode,
@@ -30,6 +31,9 @@ const WorkflowPropertiesPanel = ({
     nodes = [],
     edges = [],
     onUpdateNodeInputs,
+    webhookUrl,
+    webhookEnabled,
+    onGenerateWebhookToken,
 }) => {
     // Find connected target node types for constant nodes
     const getConnectedNodeTypes = (nodeId) => {
@@ -105,6 +109,17 @@ const WorkflowPropertiesPanel = ({
                                     <StartNodeConfig
                                         config={parsedConfig}
                                         onChange={configChangeHandler}
+                                    />
+                                );
+
+                            case "webhookTrigger":
+                                return (
+                                    <WebhookTriggerConfig
+                                        config={parsedConfig}
+                                        onChange={configChangeHandler}
+                                        webhookUrl={webhookUrl}
+                                        webhookEnabled={webhookEnabled}
+                                        onGenerateToken={onGenerateWebhookToken}
                                     />
                                 );
 

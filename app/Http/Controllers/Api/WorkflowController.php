@@ -31,6 +31,7 @@ class WorkflowController extends Controller
             'is_active' => 'boolean',
             'is_scheduled' => 'boolean',
             'schedule_cron' => 'nullable|string|max:100',
+            'webhook_enabled' => 'boolean',
             'metadata' => 'nullable|array',
             'nodes' => 'nullable|array',
             'connections' => 'nullable|array',
@@ -45,6 +46,7 @@ class WorkflowController extends Controller
                 'is_active' => $validated['is_active'] ?? true,
                 'is_scheduled' => $validated['is_scheduled'] ?? false,
                 'schedule_cron' => $validated['schedule_cron'] ?? null,
+                'webhook_enabled' => $validated['webhook_enabled'] ?? false,
                 'metadata' => $validated['metadata'] ?? null,
             ]);
 
@@ -105,6 +107,7 @@ class WorkflowController extends Controller
             'is_active' => 'boolean',
             'is_scheduled' => 'boolean',
             'schedule_cron' => 'nullable|string|max:100',
+            'webhook_enabled' => 'boolean',
             'metadata' => 'nullable|array',
             'nodes' => 'nullable|array',
             'connections' => 'nullable|array',
@@ -121,6 +124,7 @@ class WorkflowController extends Controller
                 'is_active' => $validated['is_active'] ?? $workflow->is_active,
                 'is_scheduled' => $validated['is_scheduled'] ?? $workflow->is_scheduled,
                 'schedule_cron' => $validated['schedule_cron'] ?? $workflow->schedule_cron,
+                'webhook_enabled' => $validated['webhook_enabled'] ?? $workflow->webhook_enabled,
                 'metadata' => $validated['metadata'] ?? $workflow->metadata,
             ];
 
@@ -179,6 +183,17 @@ class WorkflowController extends Controller
         $workflow->delete();
 
         return response()->json(['message' => 'Workflow deleted successfully']);
+    }
+
+    public function generateWebhookToken(Workflow $workflow): JsonResponse
+    {
+        $workflow->generateWebhookToken();
+
+        return response()->json([
+            'success' => true,
+            'webhook_token' => $workflow->webhook_token,
+            'webhook_url' => $workflow->webhook_url,
+        ]);
     }
 
     public function emailTemplates(Request $request): JsonResponse

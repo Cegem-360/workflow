@@ -90,6 +90,13 @@ export const getNodeTypeStyles = (isDark) => ({
         textColor: isDark ? "#f9fafb" : "#111827",
         secondaryText: isDark ? "#9ca3af" : "#6b7280",
     },
+    webhookTrigger: {
+        accent: "#f97316",
+        bg: isDark ? "#1f2937" : "#ffffff",
+        border: isDark ? "#374151" : "#e5e7eb",
+        textColor: isDark ? "#f9fafb" : "#111827",
+        secondaryText: isDark ? "#9ca3af" : "#6b7280",
+    },
 });
 
 // SVG Icons for each node type
@@ -174,6 +181,11 @@ export const nodeIcons = {
             <polyline points="14 2 14 8 20 8" />
             <line x1="16" y1="13" x2="8" y2="13" />
             <line x1="16" y1="17" x2="8" y2="17" />
+        </svg>
+    ),
+    webhookTrigger: (color) => (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
         </svg>
     ),
 };

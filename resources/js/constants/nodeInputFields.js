@@ -5,6 +5,12 @@
  */
 
 export const NODE_INPUT_FIELDS = {
+    // Webhook Trigger
+    webhookTrigger: {
+        label: "Webhook Trigger",
+        fields: [{ value: "payload", label: "Full Payload" }],
+    },
+
     // Google Calendar
     googleCalendarAction: {
         label: "Google Calendar",

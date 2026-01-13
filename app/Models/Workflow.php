@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Workflow extends Model
 {
@@ -22,6 +23,8 @@ class Workflow extends Model
         'last_run_at',
         'next_run_at',
         'metadata',
+        'webhook_enabled',
+        'webhook_token',
     ];
 
     protected function casts(): array
@@ -29,6 +32,7 @@ class Workflow extends Model
         return [
             'is_active' => 'boolean',
             'is_scheduled' => 'boolean',
+            'webhook_enabled' => 'boolean',
             'last_run_at' => 'datetime',
             'next_run_at' => 'datetime',
             'metadata' => 'array',
@@ -128,5 +132,27 @@ class Workflow extends Model
     public function connections(): HasMany
     {
         return $this->hasMany(WorkflowConnection::class);
+    }
+
+    /**
+     * Get the full webhook URL for this workflow.
+     */
+    public function getWebhookUrlAttribute(): ?string
+    {
+        if (! $this->webhook_token) {
+            return null;
+        }
+
+        return url("/api/webhooks/{$this->webhook_token}");
+    }
+
+    /**
+     * Generate a new webhook token for this workflow.
+     */
+    public function generateWebhookToken(): void
+    {
+        $this->update([
+            'webhook_token' => Str::random(40),
+        ]);
     }
 }
