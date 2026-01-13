@@ -166,10 +166,6 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                         // Use the targetField as the key (e.g., 'summary', 'startDateTime', 'endDateTime', etc.)
                         values[targetField] = value;
                         console.log(`[getInputValues] Set values['${targetField}'] = ${value}`);
-                    } else if (edge.targetHandle === "input-a") {
-                        values.valueA = value;
-                    } else if (edge.targetHandle === "input-b") {
-                        values.valueB = value;
                     } else if (edge.targetHandle === "start-input") {
                         values.startDateTime = value;
                     } else if (edge.targetHandle === "end-input") {
@@ -379,8 +375,46 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                 case "condition": {
                     const operator = config.operator || "equals";
                     const passWhen = config.passWhen || "true";
-                    const a = inputValues.valueA ?? config.defaultValueA;
-                    const b = inputValues.valueB ?? config.defaultValueB;
+
+                    // New config structure with static/dynamic modes
+                    const valueAMode = config.valueAMode || "static";
+                    const valueAStatic = config.valueAStatic || "";
+                    const valueAPath = config.valueAPath || "";
+                    const valueBMode = config.valueBMode || "static";
+                    const valueBStatic = config.valueBStatic || "";
+                    const valueBPath = config.valueBPath || "";
+
+                    // Get input data (single input handle)
+                    const inputData = inputValues.input;
+
+                    // Resolve value A based on mode
+                    let a;
+                    if (valueAMode === "static") {
+                        a = valueAStatic;
+                    } else {
+                        // Dynamic mode - extract from input
+                        if (valueAPath && inputData && typeof inputData === "object") {
+                            a = getNestedValue(inputData, valueAPath);
+                            console.log(`[Condition] Extracted A from path '${valueAPath}':`, a);
+                        } else {
+                            a = inputData;
+                        }
+                    }
+
+                    // Resolve value B based on mode
+                    let b;
+                    if (valueBMode === "static") {
+                        b = valueBStatic;
+                    } else {
+                        // Dynamic mode - extract from input
+                        if (valueBPath && inputData && typeof inputData === "object") {
+                            b = getNestedValue(inputData, valueBPath);
+                            console.log(`[Condition] Extracted B from path '${valueBPath}':`, b);
+                        } else {
+                            b = inputData;
+                        }
+                    }
+
                     const numA = parseFloat(a);
                     const numB = parseFloat(b);
 
@@ -437,7 +471,7 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                         success: true,
                         conditionResult: result,
                         shouldContinue,
-                        output: shouldContinue ? a : null,
+                        output: shouldContinue ? inputData : null,
                     };
                 }
 
@@ -1165,8 +1199,52 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                 case "condition": {
                     const operator = config.operator || "equals";
                     const passWhen = config.passWhen || "true";
-                    const a = inputValues.valueA ?? config.defaultValueA;
-                    const b = inputValues.valueB ?? config.defaultValueB;
+
+                    // New config structure with static/dynamic modes
+                    const valueAMode = config.valueAMode || "static";
+                    const valueAStatic = config.valueAStatic || "";
+                    const valueAPath = config.valueAPath || "";
+                    const valueBMode = config.valueBMode || "static";
+                    const valueBStatic = config.valueBStatic || "";
+                    const valueBPath = config.valueBPath || "";
+
+                    // Get input data (single input handle)
+                    const inputData = inputValues.input;
+
+                    // Resolve value A based on mode
+                    let a;
+                    if (valueAMode === "static") {
+                        a = valueAStatic;
+                    } else {
+                        // Dynamic mode - extract from input
+                        if (valueAPath && inputData && typeof inputData === "object") {
+                            a = getNestedValue(inputData, valueAPath);
+                            console.log(
+                                `[Runner] Condition - Extracted A from path '${valueAPath}':`,
+                                a,
+                            );
+                        } else {
+                            a = inputData;
+                        }
+                    }
+
+                    // Resolve value B based on mode
+                    let b;
+                    if (valueBMode === "static") {
+                        b = valueBStatic;
+                    } else {
+                        // Dynamic mode - extract from input
+                        if (valueBPath && inputData && typeof inputData === "object") {
+                            b = getNestedValue(inputData, valueBPath);
+                            console.log(
+                                `[Runner] Condition - Extracted B from path '${valueBPath}':`,
+                                b,
+                            );
+                        } else {
+                            b = inputData;
+                        }
+                    }
+
                     const numA = parseFloat(a);
                     const numB = parseFloat(b);
 
@@ -1223,7 +1301,7 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                         success: true,
                         conditionResult: result,
                         shouldContinue,
-                        output: shouldContinue ? a : null,
+                        output: shouldContinue ? inputData : null,
                     };
                 }
 
@@ -1815,10 +1893,6 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
 
                             if (targetField) {
                                 inputValues[targetField] = value;
-                            } else if (edge.targetHandle === "input-a") {
-                                inputValues.valueA = value;
-                            } else if (edge.targetHandle === "input-b") {
-                                inputValues.valueB = value;
                             } else if (edge.targetHandle === "start-input") {
                                 inputValues.startDateTime = value;
                             } else if (edge.targetHandle === "end-input") {

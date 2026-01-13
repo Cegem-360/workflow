@@ -496,11 +496,14 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                 }
 
                 // Check if the specific target handle already has a connection
-                // Exception: Google Calendar and Google Docs nodes can accept multiple connections to their top-target handle
+                // Exception: Some nodes can accept multiple connections to specific handles
                 const targetNode = nodes.find((n) => n.id === params.target);
                 const isMultiInputHandle =
-                    (targetNode?.type === "googleCalendar" || targetNode?.type === "googleDocs") &&
-                    params.targetHandle === "top-target";
+                    // Google Calendar and Google Docs nodes can accept multiple connections to their top-target handle
+                    ((targetNode?.type === "googleCalendar" || targetNode?.type === "googleDocs") &&
+                        params.targetHandle === "top-target") ||
+                    // Condition nodes can accept multiple connections to their input handle
+                    (targetNode?.type === "condition" && params.targetHandle === "input");
 
                 if (!isMultiInputHandle) {
                     const targetHandleHasInput = eds.some(

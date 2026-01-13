@@ -1,4 +1,14 @@
-import React, { useMemo, useCallback } from "react";
+import React, { useMemo, useCallback, useState } from "react";
+
+// Node types that can provide output data with field mappings
+const OUTPUT_NODE_TYPES = [
+    "apiAction",
+    "googleCalendarAction",
+    "googleDocsAction",
+    "databaseAction",
+    "scriptAction",
+    "webhookAction",
+];
 
 const OPERATORS = [
     {
@@ -78,53 +88,325 @@ const OPERATORS = [
 const ConditionConfig = ({ config, onChange, nodeId, nodes, edges }) => {
     const operator = config.operator || "equals";
     const passWhen = config.passWhen || "true";
-    const defaultValueA = config.defaultValueA || "";
-    const defaultValueB = config.defaultValueB || "";
+
+    // Value A settings
+    const valueAMode = config.valueAMode || "static"; // "static" or "dynamic"
+    const valueAStatic = config.valueAStatic || "";
+    const valueAPath = config.valueAPath || "";
+
+    // Value B settings
+    const valueBMode = config.valueBMode || "static"; // "static" or "dynamic"
+    const valueBStatic = config.valueBStatic || "";
+    const valueBPath = config.valueBPath || "";
+
+    const [showPathDropdownA, setShowPathDropdownA] = useState(false);
+    const [showPathDropdownB, setShowPathDropdownB] = useState(false);
 
     const updateConfig = useCallback(
         (updates) => {
             onChange({
                 operator,
                 passWhen,
-                defaultValueA,
-                defaultValueB,
+                valueAMode,
+                valueAStatic,
+                valueAPath,
+                valueBMode,
+                valueBStatic,
+                valueBPath,
                 ...updates,
             });
         },
-        [onChange, operator, passWhen, defaultValueA, defaultValueB],
+        [
+            onChange,
+            operator,
+            passWhen,
+            valueAMode,
+            valueAStatic,
+            valueAPath,
+            valueBMode,
+            valueBStatic,
+            valueBPath,
+        ],
     );
 
-    // Get connected input nodes
+    // Get all connected input nodes and their available fields
     const connectedInputs = useMemo(() => {
-        if (!edges || !nodes) return { inputA: null, inputB: null };
+        if (!edges || !nodes) return [];
 
-        const inputAEdge = edges.find((e) => e.target === nodeId && e.targetHandle === "input-a");
-        const inputBEdge = edges.find((e) => e.target === nodeId && e.targetHandle === "input-b");
+        // Find all edges connected to the "input" handle
+        const inputEdges = edges.filter((e) => e.target === nodeId && e.targetHandle === "input");
+        if (inputEdges.length === 0) return [];
 
-        const inputANode = inputAEdge ? nodes.find((n) => n.id === inputAEdge.source) : null;
-        const inputBNode = inputBEdge ? nodes.find((n) => n.id === inputBEdge.source) : null;
+        const inputs = [];
 
-        return {
-            inputA: inputANode
-                ? {
-                      id: inputANode.id,
-                      label: inputANode.data?.label || inputANode.id,
-                  }
-                : null,
-            inputB: inputBNode
-                ? {
-                      id: inputBNode.id,
-                      label: inputBNode.data?.label || inputBNode.id,
-                  }
-                : null,
-        };
+        inputEdges.forEach((inputEdge) => {
+            const inputNode = nodes.find((n) => n.id === inputEdge.source);
+            if (!inputNode) return;
+
+            const nodeType = inputNode.data?.type;
+            const nodeConfig = inputNode.data?.config || {};
+            const paths = [];
+
+            // For action nodes, get discoveredPaths and responseMapping
+            if (OUTPUT_NODE_TYPES.includes(nodeType)) {
+                // Add discovered paths from API test
+                if (nodeConfig.discoveredPaths?.length > 0) {
+                    nodeConfig.discoveredPaths.forEach((p) => {
+                        paths.push({
+                            path: p.path,
+                            type: p.type,
+                            preview: p.preview,
+                            source: "discovered",
+                            nodeId: inputNode.id,
+                        });
+                    });
+                }
+
+                // Add mapped fields
+                if (nodeConfig.responseMapping?.length > 0) {
+                    nodeConfig.responseMapping.forEach((m) => {
+                        if (m.alias) {
+                            paths.push({
+                                path: `_mapped.${m.alias}`,
+                                type: "mapped",
+                                preview: `→ ${m.path}`,
+                                source: "mapping",
+                                nodeId: inputNode.id,
+                            });
+                        }
+                    });
+                }
+            }
+
+            // For constant nodes, add a simple value indicator
+            if (nodeType === "constant") {
+                const valueType = nodeConfig.valueType || "text";
+                const previewValue =
+                    nodeConfig.value !== undefined ? String(nodeConfig.value).substring(0, 30) : "";
+                paths.push({
+                    path: `$constant:${inputNode.id}`, // Special path format for constants
+                    type: valueType,
+                    preview: previewValue || "(empty)",
+                    source: "constant",
+                    nodeId: inputNode.id,
+                    displayLabel: `value: ${previewValue || "(empty)"}`,
+                });
+            }
+
+            inputs.push({
+                id: inputNode.id,
+                label: inputNode.data?.label || inputNode.id,
+                type: nodeType,
+                paths,
+                isActionOutput: OUTPUT_NODE_TYPES.includes(nodeType),
+                isConstant: nodeType === "constant",
+            });
+        });
+
+        return inputs;
     }, [edges, nodes, nodeId]);
+
+    // Flatten all paths from all connected inputs with node labels
+    const allAvailablePaths = useMemo(() => {
+        const paths = [];
+        connectedInputs.forEach((input) => {
+            input.paths.forEach((p) => {
+                paths.push({
+                    ...p,
+                    nodeLabel: input.label,
+                    fullPath: input.paths.length > 0 ? p.path : "",
+                });
+            });
+        });
+        return paths;
+    }, [connectedInputs]);
 
     const selectedOperator = OPERATORS.find((op) => op.value === operator);
     const isUnaryOperator = ["isEmpty", "isNotEmpty", "isTrue", "isFalse"].includes(operator);
 
+    // Render a value configuration section (for A or B)
+    const renderValueConfig = (
+        label,
+        mode,
+        staticValue,
+        pathValue,
+        onModeChange,
+        onStaticChange,
+        onPathChange,
+        showDropdown,
+        setShowDropdown,
+        colorClass,
+    ) => (
+        <div className="space-y-2">
+            <div className="flex items-center gap-2">
+                <span className={`font-mono font-semibold ${colorClass}`}>{label}:</span>
+            </div>
+
+            {/* Mode selector - radio buttons */}
+            <div className="flex gap-4 ml-4">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                        type="radio"
+                        name={`mode-${label}`}
+                        checked={mode === "static"}
+                        onChange={() => onModeChange("static")}
+                        className="w-4 h-4 text-blue-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">Static</span>
+                </label>
+                <label
+                    className={`flex items-center gap-1.5 cursor-pointer ${connectedInputs.length === 0 ? "opacity-50" : ""}`}
+                >
+                    <input
+                        type="radio"
+                        name={`mode-${label}`}
+                        checked={mode === "dynamic"}
+                        onChange={() => onModeChange("dynamic")}
+                        disabled={connectedInputs.length === 0}
+                        className="w-4 h-4 text-purple-600"
+                    />
+                    <span className="text-sm text-gray-700 dark:text-gray-300">
+                        Dynamic (from input)
+                    </span>
+                </label>
+            </div>
+
+            {/* Value input based on mode */}
+            <div className="ml-4">
+                {mode === "static" ? (
+                    <input
+                        type="text"
+                        value={staticValue}
+                        onChange={(e) => onStaticChange(e.target.value)}
+                        placeholder="Enter static value..."
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    />
+                ) : (
+                    <div className="relative">
+                        <input
+                            type="text"
+                            value={pathValue}
+                            onChange={(e) => onPathChange(e.target.value)}
+                            onFocus={() => setShowDropdown(true)}
+                            onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                            placeholder={
+                                allAvailablePaths.length > 0
+                                    ? "Select or type field path..."
+                                    : "e.g., data.status"
+                            }
+                            className="w-full px-3 py-2 border border-purple-300 dark:border-purple-600 rounded text-sm font-mono bg-purple-50 dark:bg-purple-900/20 text-gray-900 dark:text-white"
+                        />
+                        {showDropdown && allAvailablePaths.length > 0 && (
+                            <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded shadow-lg max-h-60 overflow-y-auto">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        onPathChange("");
+                                        setShowDropdown(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 ${
+                                        !pathValue ? "bg-purple-50 dark:bg-purple-900/30" : ""
+                                    }`}
+                                >
+                                    <span className="font-medium">(Full output)</span>
+                                </button>
+                                {connectedInputs.map((input) => (
+                                    <React.Fragment key={input.id}>
+                                        {connectedInputs.length > 1 && (
+                                            <div className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-xs font-semibold text-gray-600 dark:text-gray-300 border-t border-gray-200 dark:border-gray-600">
+                                                {input.label}
+                                            </div>
+                                        )}
+                                        {input.paths.map((item, idx) => (
+                                            <button
+                                                key={`${input.id}-${idx}`}
+                                                type="button"
+                                                onClick={() => {
+                                                    onPathChange(item.path);
+                                                    setShowDropdown(false);
+                                                }}
+                                                className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center ${
+                                                    pathValue === item.path
+                                                        ? "bg-purple-50 dark:bg-purple-900/30"
+                                                        : ""
+                                                }`}
+                                            >
+                                                <span className="font-mono text-gray-800 dark:text-gray-200 truncate">
+                                                    {item.displayLabel ||
+                                                        item.path ||
+                                                        "(full output)"}
+                                                </span>
+                                                <span
+                                                    className={`text-xs px-1.5 py-0.5 rounded ml-2 flex-shrink-0 ${
+                                                        item.source === "constant"
+                                                            ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                                                            : item.source === "mapping"
+                                                              ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                                                              : item.type === "string"
+                                                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                                                : item.type === "number"
+                                                                  ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                                                                  : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                                                    }`}
+                                                >
+                                                    {item.source === "constant"
+                                                        ? `const:${item.type}`
+                                                        : item.type}
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        )}
+                        {connectedInputs.length === 0 && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                Connect an input node to use dynamic values
+                            </p>
+                        )}
+                        {connectedInputs.length > 0 && allAvailablePaths.length === 0 && (
+                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                                Tip: Test the API in the source node to see available fields
+                            </p>
+                        )}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+
     return (
         <div className="space-y-4">
+            {/* Connected Inputs Info */}
+            {connectedInputs.length > 0 && (
+                <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded p-2">
+                    <p className="text-xs text-green-700 dark:text-green-400">
+                        <strong>Inputs ({connectedInputs.length}):</strong>{" "}
+                        {connectedInputs.map((input, idx) => (
+                            <span key={input.id}>
+                                {idx > 0 && ", "}
+                                {input.label}
+                                {input.paths.length > 0 && (
+                                    <span className="text-green-600 dark:text-green-500">
+                                        {" "}
+                                        ({input.paths.length})
+                                    </span>
+                                )}
+                            </span>
+                        ))}
+                    </p>
+                </div>
+            )}
+
+            {connectedInputs.length === 0 && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded p-2">
+                    <p className="text-xs text-amber-700 dark:text-amber-400">
+                        No input connected. Connect action or constant nodes to use dynamic values.
+                        Multiple inputs are supported.
+                    </p>
+                </div>
+            )}
+
             {/* Operator Selection */}
             <div>
                 <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
@@ -148,6 +430,64 @@ const ConditionConfig = ({ config, onChange, nodeId, nodes, edges }) => {
                 )}
             </div>
 
+            {/* Value A Configuration */}
+            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded p-3">
+                {renderValueConfig(
+                    "A",
+                    valueAMode,
+                    valueAStatic,
+                    valueAPath,
+                    (mode) => updateConfig({ valueAMode: mode }),
+                    (val) => updateConfig({ valueAStatic: val }),
+                    (path) => updateConfig({ valueAPath: path }),
+                    showPathDropdownA,
+                    setShowPathDropdownA,
+                    "text-blue-600 dark:text-blue-400",
+                )}
+            </div>
+
+            {/* Value B Configuration (if not unary operator) */}
+            {!isUnaryOperator && (
+                <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded p-3">
+                    {renderValueConfig(
+                        "B",
+                        valueBMode,
+                        valueBStatic,
+                        valueBPath,
+                        (mode) => updateConfig({ valueBMode: mode }),
+                        (val) => updateConfig({ valueBStatic: val }),
+                        (path) => updateConfig({ valueBPath: path }),
+                        showPathDropdownB,
+                        setShowPathDropdownB,
+                        "text-purple-600 dark:text-purple-400",
+                    )}
+                </div>
+            )}
+
+            {/* Condition Preview */}
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded p-3">
+                <h5 className="font-medium text-sm text-amber-800 dark:text-amber-400 mb-2">
+                    Condition Preview
+                </h5>
+                <div className="font-mono text-sm text-center py-2 bg-white dark:bg-gray-700 rounded border border-amber-200 dark:border-amber-600">
+                    <span className="text-blue-600 dark:text-blue-400">
+                        {valueAMode === "static"
+                            ? `"${valueAStatic || "..."}"`
+                            : `input.${valueAPath || "*"}`}
+                    </span>
+                    <span className="mx-2 text-amber-600 dark:text-amber-400">
+                        {selectedOperator?.symbol || "?"}
+                    </span>
+                    {!isUnaryOperator && (
+                        <span className="text-purple-600 dark:text-purple-400">
+                            {valueBMode === "static"
+                                ? `"${valueBStatic || "..."}"`
+                                : `input.${valueBPath || "*"}`}
+                        </span>
+                    )}
+                </div>
+            </div>
+
             {/* Pass When Selection */}
             <div>
                 <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
@@ -164,7 +504,7 @@ const ConditionConfig = ({ config, onChange, nodeId, nodes, edges }) => {
                         }`}
                     >
                         <span className="block text-lg mb-0.5">✓</span>
-                        Condition is TRUE
+                        TRUE
                     </button>
                     <button
                         type="button"
@@ -176,128 +516,17 @@ const ConditionConfig = ({ config, onChange, nodeId, nodes, edges }) => {
                         }`}
                     >
                         <span className="block text-lg mb-0.5">✗</span>
-                        Condition is FALSE
+                        FALSE
                     </button>
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5">
-                    The workflow will only continue to connected nodes when this condition is met.
-                </p>
-            </div>
-
-            {/* Connected Inputs Display */}
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded p-3">
-                <h5 className="font-medium text-sm text-amber-800 dark:text-amber-400 mb-2">
-                    Connected Inputs
-                </h5>
-                <div className="space-y-2 text-sm">
-                    <div className="flex items-center gap-2">
-                        <span className="font-mono text-blue-600 dark:text-blue-400 font-semibold">
-                            A:
-                        </span>
-                        {connectedInputs.inputA ? (
-                            <span className="text-gray-700 dark:text-gray-300">
-                                {connectedInputs.inputA.label}
-                            </span>
-                        ) : (
-                            <span className="text-gray-400 dark:text-gray-500 italic">
-                                Not connected
-                            </span>
-                        )}
-                    </div>
-                    {!isUnaryOperator && (
-                        <div className="flex items-center gap-2">
-                            <span className="font-mono text-purple-600 dark:text-purple-400 font-semibold">
-                                B:
-                            </span>
-                            {connectedInputs.inputB ? (
-                                <span className="text-gray-700 dark:text-gray-300">
-                                    {connectedInputs.inputB.label}
-                                </span>
-                            ) : (
-                                <span className="text-gray-400 dark:text-gray-500 italic">
-                                    Not connected
-                                </span>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Default Values */}
-            <div className="space-y-3">
-                <div>
-                    <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
-                        Default Value for A
-                        <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                            (if not connected)
-                        </span>
-                    </label>
-                    <input
-                        type="text"
-                        value={defaultValueA}
-                        onChange={(e) => updateConfig({ defaultValueA: e.target.value })}
-                        placeholder="Leave empty to require connection"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    />
-                </div>
-
-                {!isUnaryOperator && (
-                    <div>
-                        <label className="block text-sm font-medium mb-1.5 text-gray-700 dark:text-gray-300">
-                            Default Value for B
-                            <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
-                                (if not connected)
-                            </span>
-                        </label>
-                        <input
-                            type="text"
-                            value={defaultValueB}
-                            onChange={(e) => updateConfig({ defaultValueB: e.target.value })}
-                            placeholder="Leave empty to require connection"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Condition Preview */}
-            <div className="bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded p-3">
-                <h5 className="font-medium text-sm text-gray-700 dark:text-gray-300 mb-2">
-                    Condition Preview
-                </h5>
-                <div className="font-mono text-lg text-center py-2 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">
-                    <span className="text-blue-600 dark:text-blue-400">A</span>
-                    <span className="mx-2 text-amber-600 dark:text-amber-400">
-                        {selectedOperator?.symbol || "?"}
-                    </span>
-                    {!isUnaryOperator && (
-                        <span className="text-purple-600 dark:text-purple-400">B</span>
-                    )}
-                </div>
-            </div>
-
-            {/* Output Description */}
-            <div className="bg-gray-100 dark:bg-gray-700 rounded p-3 text-sm">
-                <div className="flex items-center gap-2">
-                    <span
-                        className={`w-3 h-3 rounded-full ${passWhen === "true" ? "bg-green-500" : "bg-red-500"}`}
-                    ></span>
-                    <span className="text-gray-700 dark:text-gray-300">
-                        Continues when condition is <strong>{passWhen.toUpperCase()}</strong>
-                    </span>
-                </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
-                    The output can be connected to multiple nodes - all will receive the result when
-                    the condition passes.
-                </p>
             </div>
 
             {/* Tips */}
             <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded p-2">
                 <p className="text-xs text-blue-800 dark:text-blue-400">
-                    <strong>Tip:</strong> Connect constant or action outputs to inputs A and B. When
-                    the condition matches your "pass when" setting, the workflow continues to
-                    connected nodes.
+                    <strong>Tip:</strong> Use static for fixed values, dynamic for values from
+                    connected nodes. The workflow continues when the condition result matches your
+                    "pass when" setting.
                 </p>
             </div>
         </div>

@@ -236,10 +236,6 @@ class WorkflowRunnerService
             if ($targetField) {
                 // Use the targetField as the key (e.g., 'summary', 'startDateTime', 'endDateTime', etc.)
                 $values[$targetField] = $sourceOutput;
-            } elseif ($conn->target_handle === 'input-a') {
-                $values['valueA'] = $sourceOutput;
-            } elseif ($conn->target_handle === 'input-b') {
-                $values['valueB'] = $sourceOutput;
             } elseif ($conn->target_handle === 'start-input') {
                 $values['startDateTime'] = $sourceOutput;
             } elseif ($conn->target_handle === 'end-input') {
@@ -410,8 +406,43 @@ class WorkflowRunnerService
     {
         $operator = $config['operator'] ?? 'equals';
         $passWhen = $config['passWhen'] ?? 'true';
-        $a = $inputValues['valueA'] ?? $config['defaultValueA'] ?? null;
-        $b = $inputValues['valueB'] ?? $config['defaultValueB'] ?? null;
+
+        // New config structure with static/dynamic modes
+        $valueAMode = $config['valueAMode'] ?? 'static';
+        $valueAStatic = $config['valueAStatic'] ?? '';
+        $valueAPath = $config['valueAPath'] ?? '';
+        $valueBMode = $config['valueBMode'] ?? 'static';
+        $valueBStatic = $config['valueBStatic'] ?? '';
+        $valueBPath = $config['valueBPath'] ?? '';
+
+        // Get input data (single input handle)
+        $inputData = $inputValues['input'] ?? null;
+
+        // Resolve value A based on mode
+        if ($valueAMode === 'static') {
+            $a = $valueAStatic;
+        } else {
+            // Dynamic mode - extract from input
+            if ($valueAPath && is_array($inputData)) {
+                $a = data_get($inputData, $valueAPath);
+                $this->log('info', "Condition - Extracted A from path '{$valueAPath}': ".(is_scalar($a) ? $a : json_encode($a)));
+            } else {
+                $a = $inputData;
+            }
+        }
+
+        // Resolve value B based on mode
+        if ($valueBMode === 'static') {
+            $b = $valueBStatic;
+        } else {
+            // Dynamic mode - extract from input
+            if ($valueBPath && is_array($inputData)) {
+                $b = data_get($inputData, $valueBPath);
+                $this->log('info', "Condition - Extracted B from path '{$valueBPath}': ".(is_scalar($b) ? $b : json_encode($b)));
+            } else {
+                $b = $inputData;
+            }
+        }
 
         $result = match ($operator) {
             'equals' => $a == $b,
@@ -432,13 +463,15 @@ class WorkflowRunnerService
         // Check if condition passes based on passWhen setting
         $shouldPass = ($passWhen === 'true' && $result) || ($passWhen === 'false' && ! $result);
 
-        $this->log('info', "Condition: {$a} {$operator} {$b} = ".($result ? 'true' : 'false')." (passWhen: {$passWhen}, passed: ".($shouldPass ? 'yes' : 'no').')');
+        $displayA = is_scalar($a) ? $a : json_encode($a);
+        $displayB = is_scalar($b) ? $b : json_encode($b);
+        $this->log('info', "Condition: {$displayA} {$operator} {$displayB} = ".($result ? 'true' : 'false')." (passWhen: {$passWhen}, passed: ".($shouldPass ? 'yes' : 'no').')');
 
         return [
             'success' => true,
             'conditionResult' => $result,
             'shouldContinue' => $shouldPass,
-            'output' => $shouldPass ? $a : null,
+            'output' => $shouldPass ? $inputData : null,
         ];
     }
 

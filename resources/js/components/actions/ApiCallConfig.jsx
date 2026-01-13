@@ -372,8 +372,20 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
         }
     };
 
-    // Sync local state with config prop
+    // Track if we're initializing from config (only on mount or when nodeId changes)
+    const isInitializedRef = React.useRef(false);
+    const prevNodeIdRef = React.useRef(nodeId);
+
+    // Sync local state with config prop - only on initial mount or when switching to a different node
     useEffect(() => {
+        // Only reinitialize if this is first mount or if nodeId changed (switched to different node)
+        if (isInitializedRef.current && prevNodeIdRef.current === nodeId) {
+            return;
+        }
+
+        isInitializedRef.current = true;
+        prevNodeIdRef.current = nodeId;
+
         setMethod(config.method || "POST");
         setUrl(config.url || "");
         setRequestBody(config.requestBody ? JSON.stringify(config.requestBody, null, 2) : "{}");
@@ -386,7 +398,7 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
         if (config.discoveredPaths?.length > 0) {
             setAvailablePaths(config.discoveredPaths);
         }
-    }, [config]);
+    }, [config, nodeId]);
 
     useEffect(() => {
         try {

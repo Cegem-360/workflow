@@ -96,33 +96,18 @@ const ConditionNode = ({ data, selected, id }) => {
                 </div>
             )}
 
-            {/* Input Handle A - positioned at 33% */}
+            {/* Single Input Handle - Top Center */}
             <Handle
                 type="target"
                 position={Position.Top}
-                id="input-a"
+                id="input"
+                isConnectable={true}
                 style={{
                     background: isDark ? "#374151" : "#ffffff",
                     width: "14px",
                     height: "14px",
                     border: `2px solid ${getBorderColor()}`,
-                    left: "33%",
-                    top: "-8px",
-                    transform: "translateX(-50%)",
-                }}
-            />
-
-            {/* Input Handle B - positioned at 66% */}
-            <Handle
-                type="target"
-                position={Position.Top}
-                id="input-b"
-                style={{
-                    background: isDark ? "#374151" : "#ffffff",
-                    width: "14px",
-                    height: "14px",
-                    border: `2px solid ${getBorderColor()}`,
-                    left: "66%",
+                    left: "50%",
                     top: "-8px",
                     transform: "translateX(-50%)",
                 }}
@@ -133,6 +118,7 @@ const ConditionNode = ({ data, selected, id }) => {
                 type="source"
                 position={Position.Bottom}
                 id="output"
+                isConnectable={true}
                 style={{
                     background: isDark ? "#374151" : "#ffffff",
                     width: "14px",
@@ -218,7 +204,7 @@ const ConditionNode = ({ data, selected, id }) => {
                                 marginTop: "2px",
                             }}
                         >
-                            2 inputs
+                            Compare values
                         </div>
                     </div>
 
@@ -341,20 +327,6 @@ const ConditionNode = ({ data, selected, id }) => {
                         {conditionPassed ? "→ Passed to output" : "✕ Blocked"}
                     </div>
                 )}
-
-                {/* Handle labels */}
-                <div
-                    style={{
-                        marginTop: "8px",
-                        display: "flex",
-                        justifyContent: "center",
-                        gap: "24px",
-                        fontSize: "10px",
-                    }}
-                >
-                    <span style={{ color: isDark ? "#60a5fa" : "#3b82f6" }}>A</span>
-                    <span style={{ color: isDark ? "#a78bfa" : "#8b5cf6" }}>B</span>
-                </div>
             </div>
         </div>
     );

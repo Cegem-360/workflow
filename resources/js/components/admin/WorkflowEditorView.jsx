@@ -82,20 +82,39 @@ const WorkflowEditorView = ({
             };
         }) || [];
 
+    // Create a map of node IDs to their types for edge migration
+    const nodeTypeMap = {};
+    initialNodes.forEach((node) => {
+        nodeTypeMap[node.id] = node.type;
+    });
+
     const initialEdges =
-        selectedWorkflow?.connections?.map((conn) => ({
-            id: conn.connection_id,
-            type: "floating",
-            source: conn.source_node_id,
-            target: conn.target_node_id,
-            sourceHandle: conn.source_handle,
-            targetHandle: conn.target_handle,
-            markerEnd: {
-                type: MarkerType.ArrowClosed,
-                width: 20,
-                height: 20,
-            },
-        })) || [];
+        selectedWorkflow?.connections?.map((conn) => {
+            let targetHandle = conn.target_handle;
+
+            // Migration: Convert old condition node handles (input-a, input-b) to new single "input" handle
+            const targetNodeType = nodeTypeMap[conn.target_node_id];
+            if (
+                targetNodeType === "condition" &&
+                (targetHandle === "input-a" || targetHandle === "input-b")
+            ) {
+                targetHandle = "input";
+            }
+
+            return {
+                id: conn.connection_id,
+                type: "floating",
+                source: conn.source_node_id,
+                target: conn.target_node_id,
+                sourceHandle: conn.source_handle,
+                targetHandle: targetHandle,
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                    width: 20,
+                    height: 20,
+                },
+            };
+        }) || [];
 
     return (
         <div className="space-y-4">
