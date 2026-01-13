@@ -1,5 +1,204 @@
 import React, { useState, useEffect, useMemo } from "react";
 
+// Key-Value Builder Component for Body and Headers
+const KeyValueBuilder = ({ value, onChange, placeholder = "value" }) => {
+    // Parse JSON string to entries array
+    const parseToEntries = (jsonStr) => {
+        try {
+            const obj = jsonStr ? JSON.parse(jsonStr) : {};
+            return Object.entries(obj).map(([key, val]) => ({
+                key,
+                value: typeof val === "object" ? JSON.stringify(val) : String(val),
+                type: typeof val === "object" ? "json" : typeof val,
+            }));
+        } catch {
+            return [];
+        }
+    };
+
+    // Convert entries array to JSON string
+    const entriesToJson = (entries) => {
+        const obj = {};
+        entries.forEach((entry) => {
+            if (entry.key.trim()) {
+                let parsedValue = entry.value;
+                if (entry.type === "number") {
+                    parsedValue = parseFloat(entry.value) || 0;
+                } else if (entry.type === "boolean") {
+                    parsedValue = entry.value === "true";
+                } else if (entry.type === "json") {
+                    try {
+                        parsedValue = JSON.parse(entry.value);
+                    } catch {
+                        parsedValue = entry.value;
+                    }
+                }
+                obj[entry.key] = parsedValue;
+            }
+        });
+        return JSON.stringify(obj, null, 2);
+    };
+
+    const [mode, setMode] = useState("visual"); // "visual" or "raw"
+    const [entries, setEntries] = useState(() => parseToEntries(value));
+
+    // Sync entries when value changes externally (only in raw mode or initial load)
+    useEffect(() => {
+        if (mode === "raw") {
+            setEntries(parseToEntries(value));
+        }
+    }, [value, mode]);
+
+    const addEntry = () => {
+        const newEntries = [...entries, { key: "", value: "", type: "string" }];
+        setEntries(newEntries);
+    };
+
+    const updateEntry = (index, field, newValue) => {
+        const newEntries = entries.map((entry, i) =>
+            i === index ? { ...entry, [field]: newValue } : entry,
+        );
+        setEntries(newEntries);
+        onChange(entriesToJson(newEntries));
+    };
+
+    const removeEntry = (index) => {
+        const newEntries = entries.filter((_, i) => i !== index);
+        setEntries(newEntries);
+        onChange(entriesToJson(newEntries));
+    };
+
+    const switchToRaw = () => {
+        setMode("raw");
+    };
+
+    const switchToVisual = () => {
+        setEntries(parseToEntries(value));
+        setMode("visual");
+    };
+
+    return (
+        <div className="space-y-2">
+            {/* Mode Toggle */}
+            <div className="flex justify-end gap-1">
+                <button
+                    type="button"
+                    onClick={switchToVisual}
+                    className={`text-xs px-2 py-1 rounded transition-colors ${
+                        mode === "visual"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    }`}
+                >
+                    Visual
+                </button>
+                <button
+                    type="button"
+                    onClick={switchToRaw}
+                    className={`text-xs px-2 py-1 rounded transition-colors ${
+                        mode === "raw"
+                            ? "bg-blue-500 text-white"
+                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                    }`}
+                >
+                    JSON
+                </button>
+            </div>
+
+            {mode === "visual" ? (
+                <div className="space-y-2">
+                    {entries.map((entry, index) => (
+                        <div key={index} className="flex gap-2 items-center">
+                            <input
+                                type="text"
+                                value={entry.key}
+                                onChange={(e) => updateEntry(index, "key", e.target.value)}
+                                placeholder="key"
+                                className="flex-1 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            />
+                            <select
+                                value={entry.type}
+                                onChange={(e) => updateEntry(index, "type", e.target.value)}
+                                className="w-20 px-1 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            >
+                                <option value="string">text</option>
+                                <option value="number">num</option>
+                                <option value="boolean">bool</option>
+                                <option value="json">json</option>
+                            </select>
+                            {entry.type === "boolean" ? (
+                                <select
+                                    value={entry.value}
+                                    onChange={(e) => updateEntry(index, "value", e.target.value)}
+                                    className="flex-1 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                >
+                                    <option value="true">true</option>
+                                    <option value="false">false</option>
+                                </select>
+                            ) : (
+                                <input
+                                    type={entry.type === "number" ? "number" : "text"}
+                                    value={entry.value}
+                                    onChange={(e) => updateEntry(index, "value", e.target.value)}
+                                    placeholder={placeholder}
+                                    className="flex-1 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                />
+                            )}
+                            <button
+                                type="button"
+                                onClick={() => removeEntry(index)}
+                                className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                            >
+                                <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M6 18L18 6M6 6l12 12"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={addEntry}
+                        className="w-full py-1.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded text-xs text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-1"
+                    >
+                        <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                        >
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M12 4v16m8-8H4"
+                            />
+                        </svg>
+                        Add Field
+                    </button>
+                </div>
+            ) : (
+                <textarea
+                    value={value}
+                    onChange={(e) => onChange(e.target.value)}
+                    rows={5}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                    placeholder='{"key": "value"}'
+                />
+            )}
+        </div>
+    );
+};
+
 // Node types that can provide output data
 const OUTPUT_NODE_TYPES = [
     "apiAction",
@@ -530,46 +729,62 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
             )}
 
             {(method === "POST" || method === "PUT" || method === "PATCH") && (
-                <>
-                    <DynamicField
-                        label="Request Body (JSON)"
-                        value={requestBody}
-                        onChange={setRequestBody}
-                        type="textarea"
-                        placeholder='{"key": "value"}'
-                        rows={5}
-                        isDynamic={dynamicFields.requestBody}
-                        onDynamicChange={(v) => toggleDynamic("requestBody", v)}
-                        availableInputs={availableInputs.filter(
-                            (i) => i.targetField === "requestBody" || i.isActionOutput,
-                        )}
-                    />
-                    {!dynamicFields.requestBody && (
-                        <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
-                            JSON format required
-                        </p>
+                <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                            Request Body
+                        </label>
+                        <button
+                            type="button"
+                            onClick={() => toggleDynamic("requestBody", !dynamicFields.requestBody)}
+                            className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                                dynamicFields.requestBody
+                                    ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                                    : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                            }`}
+                        >
+                            {dynamicFields.requestBody ? "Dynamic" : "Static"}
+                        </button>
+                    </div>
+                    {dynamicFields.requestBody ? (
+                        <div className="p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded text-xs text-purple-700 dark:text-purple-300">
+                            Body will be provided by connected input node
+                        </div>
+                    ) : (
+                        <KeyValueBuilder
+                            value={requestBody}
+                            onChange={setRequestBody}
+                            placeholder="value"
+                        />
                     )}
-                </>
+                </div>
             )}
 
-            <DynamicField
-                label="Custom Headers (JSON)"
-                value={headers}
-                onChange={setHeaders}
-                type="textarea"
-                placeholder='{"Authorization": "Bearer token"}'
-                rows={3}
-                isDynamic={dynamicFields.headers}
-                onDynamicChange={(v) => toggleDynamic("headers", v)}
-                availableInputs={availableInputs.filter(
-                    (i) => i.targetField === "headers" || i.isActionOutput,
+            <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                        Custom Headers
+                    </label>
+                    <button
+                        type="button"
+                        onClick={() => toggleDynamic("headers", !dynamicFields.headers)}
+                        className={`text-xs px-2 py-0.5 rounded transition-colors ${
+                            dynamicFields.headers
+                                ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
+                                : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+                        }`}
+                    >
+                        {dynamicFields.headers ? "Dynamic" : "Static"}
+                    </button>
+                </div>
+                {dynamicFields.headers ? (
+                    <div className="p-2 bg-purple-50 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-600 rounded text-xs text-purple-700 dark:text-purple-300">
+                        Headers will be provided by connected input node
+                    </div>
+                ) : (
+                    <KeyValueBuilder value={headers} onChange={setHeaders} placeholder="value" />
                 )}
-            />
-            {!dynamicFields.headers && (
-                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-2">
-                    Additional headers to send with the request
-                </p>
-            )}
+            </div>
 
             <DynamicField
                 label="Auth Token"
