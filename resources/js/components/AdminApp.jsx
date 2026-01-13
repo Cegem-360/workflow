@@ -30,8 +30,6 @@ const AdminApp = () => {
         handleCloseEditor,
     } = useWorkflowAdmin(toast);
 
-    console.log("AdminApp rendering, workflows:", workflows.length, "isCreating:", isCreating);
-
     return (
         <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-6">

@@ -12,7 +12,6 @@ export const useWorkflowsViewer = () => {
     );
 
     useEffect(() => {
-        console.log("WorkflowsApp mounted");
         fetchWorkflows();
     }, []);
 
@@ -33,12 +32,9 @@ export const useWorkflowsViewer = () => {
 
     const fetchWorkflows = async () => {
         try {
-            console.log("Fetching workflows...");
             setLoading(true);
             const response = await axios.get("/api/workflows");
-            console.log("Workflows fetched:", response.data);
             const activeWorkflows = response.data.filter((w) => w.is_active);
-            console.log("Active workflows:", activeWorkflows);
             setWorkflows(activeWorkflows);
         } catch (error) {
             console.error("Error fetching workflows:", error);

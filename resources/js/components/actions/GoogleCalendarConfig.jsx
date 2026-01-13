@@ -1,28 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-
-// Node types that can provide output data
-const OUTPUT_NODE_TYPES = [
-    "apiAction",
-    "googleCalendarAction",
-    "googleDocsAction",
-    "databaseAction",
-    "scriptAction",
-    "webhookAction",
-];
-
-// Get display name for node type
-const getNodeTypeLabel = (type) => {
-    const labels = {
-        apiAction: "API Response",
-        googleCalendarAction: "Calendar Event",
-        googleDocsAction: "Document",
-        databaseAction: "Database Result",
-        scriptAction: "Script Output",
-        webhookAction: "Webhook Response",
-        constant: "Constant",
-    };
-    return labels[type] || type;
-};
+import { OUTPUT_NODE_TYPES, getNodeTypeLabel } from "../../constants/nodeTypes";
 
 // Component for a field that can be static or dynamic
 const DynamicField = ({
@@ -622,7 +599,6 @@ const GoogleCalendarConfig = ({ config, onChange, teamId, nodeId, nodes = [], ed
     useEffect(() => {
         const handleMessage = (event) => {
             if (event.data?.type === "google-oauth-callback") {
-                console.log("Google OAuth callback received:", event.data);
                 setConnectingUrl(null);
                 if (event.data.success) {
                     // Refresh connection status after successful OAuth

@@ -1,14 +1,5 @@
 import React, { useMemo, useCallback, useState } from "react";
-
-// Node types that can provide output data with field mappings
-const OUTPUT_NODE_TYPES = [
-    "apiAction",
-    "googleCalendarAction",
-    "googleDocsAction",
-    "databaseAction",
-    "scriptAction",
-    "webhookAction",
-];
+import { OUTPUT_NODE_TYPES } from "../../constants/nodeTypes";
 
 const OPERATORS = [
     {

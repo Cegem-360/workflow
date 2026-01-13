@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
+import {
+    OUTPUT_NODE_TYPES,
+    getNodeTypeLabel,
+    getTypeStyleClass,
+    getChipStyleClass,
+} from "../../constants/nodeTypes";
 
 // Key-Value Builder Modal Component for Body and Headers
 const KeyValueBuilderModal = ({ value, onChange, title = "Edit" }) => {
@@ -80,8 +86,8 @@ const KeyValueBuilderModal = ({ value, onChange, title = "Edit" }) => {
         setEntries(entries.filter((_, i) => i !== index));
     };
 
-    // Count entries for preview
-    const entryCount = parseToEntries(value).length;
+    // Count entries for preview (memoized to avoid reparsing on every render)
+    const entryCount = useMemo(() => parseToEntries(value).length, [value]);
 
     return (
         <>
@@ -352,30 +358,6 @@ const KeyValueBuilderModal = ({ value, onChange, title = "Edit" }) => {
     );
 };
 
-// Node types that can provide output data
-const OUTPUT_NODE_TYPES = [
-    "apiAction",
-    "googleCalendarAction",
-    "googleDocsAction",
-    "databaseAction",
-    "scriptAction",
-    "webhookAction",
-];
-
-// Get display name for node type
-const getNodeTypeLabel = (type) => {
-    const labels = {
-        apiAction: "API Response",
-        googleCalendarAction: "Calendar Event",
-        googleDocsAction: "Document",
-        databaseAction: "Database Result",
-        scriptAction: "Script Output",
-        webhookAction: "Webhook Response",
-        constant: "Constant",
-    };
-    return labels[type] || type;
-};
-
 // Component for a field that can be static or dynamic
 const DynamicField = ({
     label,
@@ -388,10 +370,10 @@ const DynamicField = ({
     availableInputs = [],
     rows = 3,
 }) => {
-    const hasAutoSelected = React.useRef(false);
+    const hasAutoSelected = useRef(false);
     const safeValue = value ?? "";
 
-    React.useEffect(() => {
+    useEffect(() => {
         if (isDynamic && availableInputs.length === 1 && !safeValue && !hasAutoSelected.current) {
             hasAutoSelected.current = true;
             onChange(`{{{input.${availableInputs[0].targetField}}}}`);
@@ -399,7 +381,7 @@ const DynamicField = ({
         if (!isDynamic) {
             hasAutoSelected.current = false;
         }
-    }, [isDynamic, availableInputs.length, safeValue]);
+    }, [isDynamic, availableInputs.length, safeValue, onChange]);
 
     const hasMatchingInput = availableInputs.length > 0;
 
@@ -640,7 +622,9 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
     const [testLoading, setTestLoading] = useState(false);
     const [testResponse, setTestResponse] = useState(null);
     const [testError, setTestError] = useState(null);
-    const [availablePaths, setAvailablePaths] = useState(config.discoveredPaths || []);
+    const [availablePaths, setAvailablePaths] = useState(
+        Array.isArray(config.discoveredPaths) ? config.discoveredPaths : [],
+    );
     const [showPathDropdown, setShowPathDropdown] = useState(null); // 'output' | index for mapping
 
     const toggleDynamic = (fieldName, isDynamic) => {
@@ -678,14 +662,14 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
 
             try {
                 parsedHeaders = headers ? JSON.parse(headers) : {};
-            } catch (e) {
-                // Invalid headers JSON
+            } catch {
+                parsedHeaders = {};
             }
 
             try {
                 parsedBody = requestBody ? JSON.parse(requestBody) : {};
-            } catch (e) {
-                // Invalid body JSON
+            } catch {
+                parsedBody = {};
             }
 
             if (authToken) {
@@ -716,7 +700,7 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
 
             // Extract available paths from the response
             const paths = extractPaths(data);
-            setAvailablePaths(paths);
+            setAvailablePaths(Array.isArray(paths) ? paths : []);
         } catch (error) {
             setTestError(error.message);
         } finally {
@@ -725,8 +709,8 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
     };
 
     // Track if we're initializing from config (only on mount or when nodeId changes)
-    const isInitializedRef = React.useRef(false);
-    const prevNodeIdRef = React.useRef(nodeId);
+    const isInitializedRef = useRef(false);
+    const prevNodeIdRef = useRef(nodeId);
 
     // Sync local state with config prop - only on initial mount or when switching to a different node
     useEffect(() => {
@@ -747,7 +731,7 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
         setResponseMapping(config.responseMapping || []);
         setOutputField(config.outputField || "");
         // Restore discovered paths from config
-        if (config.discoveredPaths?.length > 0) {
+        if (Array.isArray(config.discoveredPaths) && config.discoveredPaths.length > 0) {
             setAvailablePaths(config.discoveredPaths);
         }
     }, [config, nodeId]);
@@ -806,19 +790,7 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
                             {item.path}
                         </span>
                         <span
-                            className={`text-xs px-1.5 py-0.5 rounded ${
-                                item.type === "string"
-                                    ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                    : item.type === "number"
-                                      ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
-                                      : item.type === "boolean"
-                                        ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"
-                                        : item.type === "array"
-                                          ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
-                                          : item.type === "object"
-                                            ? "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
-                                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-                            }`}
+                            className={`text-xs px-1.5 py-0.5 rounded ${getTypeStyleClass(item.type)}`}
                         >
                             {item.type}
                         </span>
@@ -1188,13 +1160,7 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
                                                         },
                                                     ]);
                                                 }}
-                                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border transition-colors hover:scale-105 ${
-                                                    path.type === "string"
-                                                        ? "bg-green-50 border-green-200 text-green-700 hover:bg-green-100 dark:bg-green-900/20 dark:border-green-700 dark:text-green-400"
-                                                        : path.type === "number"
-                                                          ? "bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/20 dark:border-blue-700 dark:text-blue-400"
-                                                          : "bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 dark:bg-purple-900/20 dark:border-purple-700 dark:text-purple-400"
-                                                }`}
+                                                className={`inline-flex items-center gap-1 px-2 py-1 text-xs rounded-full border transition-colors hover:scale-105 ${getChipStyleClass(path.type)}`}
                                                 title={`${path.type}: ${path.preview}`}
                                             >
                                                 <svg

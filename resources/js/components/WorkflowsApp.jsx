@@ -17,13 +17,6 @@ const WorkflowsApp = () => {
         backToList,
     } = useWorkflowsViewer();
 
-    console.log(
-        "WorkflowsApp rendering, workflows:",
-        workflows.length,
-        "selectedWorkflow:",
-        selectedWorkflow?.name,
-    );
-
     return (
         <div className="container mx-auto p-6">
             <h1 className="text-3xl font-bold mb-6 text-gray-900 dark:text-white">

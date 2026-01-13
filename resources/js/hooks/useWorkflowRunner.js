@@ -1924,6 +1924,7 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                     updateNodeStatus(node.id, "success", {
                         outputValue: result.output,
                         conditionResult: result.conditionResult,
+                        shouldContinue: result.shouldContinue,
                         lastResponse: result.output,
                     });
 
@@ -1982,9 +1983,11 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                 await new Promise((resolve) => setTimeout(resolve, 800));
 
                 try {
+                    let nodeResult = null;
+
                     // For non-start nodes, ensure input dependencies are executed first
                     if (node.data.type !== "start" && !executedNodes.has(node.id)) {
-                        await executeNodeWithDependencies(
+                        nodeResult = await executeNodeWithDependencies(
                             node,
                             visited,
                             executedNodes,
@@ -1994,12 +1997,12 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                     } else {
                         // Execute start nodes or already visited nodes normally
                         executedNodes.add(node.id);
-                        const result = await executeNode(node);
+                        nodeResult = await executeNode(node);
 
                         // Store output in nodeOutputs map
-                        nodeOutputs.set(node.id, result.output);
+                        nodeOutputs.set(node.id, nodeResult.output);
 
-                        if (result.finished) {
+                        if (nodeResult.finished) {
                             updateNodeStatus(node.id, "success");
                             console.log("[Runner] Branch completed at end node:", node.id);
                             continue;
@@ -2007,19 +2010,27 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
 
                         // Update node with result
                         updateNodeStatus(node.id, "success", {
-                            outputValue: result.output,
-                            conditionResult: result.conditionResult,
-                            lastResponse: result.output,
+                            outputValue: nodeResult.output,
+                            conditionResult: nodeResult.conditionResult,
+                            shouldContinue: nodeResult.shouldContinue,
+                            lastResponse: nodeResult.output,
                         });
                     }
 
-                    // Find next nodes based on condition result (get updated node data)
-                    const updatedNode = nodes.find((n) => n.id === node.id);
+                    // Find next nodes - for condition nodes, check shouldContinue
                     let sourceHandle = null;
-                    if (updatedNode?.data?.conditionResult !== undefined) {
-                        sourceHandle = updatedNode.data.conditionResult
-                            ? "true-source"
-                            : "false-source";
+
+                    // For condition nodes with the new single-output design
+                    if (node.data.type === "condition") {
+                        // Check shouldContinue from the execution result
+                        if (nodeResult && nodeResult.shouldContinue === false) {
+                            console.log(
+                                `[Runner] Condition node ${node.id} - shouldContinue is false, stopping this branch`,
+                            );
+                            continue;
+                        }
+                        // Use "output" handle for condition nodes that pass
+                        sourceHandle = "output";
                     }
 
                     const nextNodes = findNextNodes(node.id, sourceHandle);

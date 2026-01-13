@@ -129,8 +129,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
 
     const handleNodeTrigger = useCallback(
         async (nodeId, nodeData) => {
-            console.log("Node trigger event:", nodeId, nodeData);
-
             setNodes((nds) =>
                 nds.map((node) => {
                     if (node.id === nodeId) {
@@ -150,9 +148,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                 switch (nodeType) {
                     case "action":
                         // Backwards compatibility: old 'action' nodes with actionType config
-                        console.log(
-                            "[Legacy Action] Old action node detected - treating as API Action",
-                        );
                         if (nodeData.config && nodeData.config.url) {
                             const {
                                 method = "POST",
@@ -160,8 +155,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                                 requestBody = {},
                                 headers = {},
                             } = nodeData.config;
-
-                            console.log(`[Legacy API Action] Making ${method} request to ${url}`);
 
                             const config = {
                                 method: method.toLowerCase(),
@@ -195,11 +188,7 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                                     return node;
                                 }),
                             );
-                            console.log("[Legacy API Action] Success:", response.data);
                         } else {
-                            console.log(
-                                "[Legacy Action] Please update this node to use new action types (API Action, Email Action, etc.)",
-                            );
                             throw new Error(
                                 "Legacy action node - please update to new action types",
                             );
@@ -215,8 +204,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                                 headers = {},
                             } = nodeData.config;
 
-                            console.log(`[API Action] Making ${method} request to ${url}`);
-
                             const config = {
                                 method: method.toLowerCase(),
                                 url: url,
@@ -249,7 +236,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                                     return node;
                                 }),
                             );
-                            console.log("[API Action] Success:", response.data);
                         } else {
                             throw new Error("API Action requires a URL");
                         }
@@ -263,9 +249,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                                 subject,
                                 customData = {},
                             } = nodeData.config;
-
-                            console.log(`[Email Action] Sending email with template: ${template}`);
-                            console.log(`[Email Action] Recipients:`, recipients);
 
                             // TODO: Implement actual email sending via Laravel backend
                             // For now, simulate the action
@@ -297,30 +280,24 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                                     return node;
                                 }),
                             );
-                            console.log("[Email Action] Success:", response.data);
                         } else {
                             throw new Error("Email Action requires configuration");
                         }
                         break;
 
                     case "databaseAction":
-                        console.log("[Database Action] Not yet implemented");
                         throw new Error("Database action is not yet implemented");
 
                     case "scriptAction":
-                        console.log("[Script Action] Not yet implemented");
                         throw new Error("Script action is not yet implemented");
 
                     case "webhookAction":
-                        console.log("[Webhook Action] Not yet implemented");
                         throw new Error("Webhook action is not yet implemented");
 
                     case "condition":
                         {
                             const config = nodeData.config || {};
                             const { operator = "equals", valueA, valueB } = config;
-
-                            console.log(`[Condition] Evaluating: ${valueA} ${operator} ${valueB}`);
 
                             let result = false;
 
@@ -371,8 +348,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                                     result = false;
                             }
 
-                            console.log(`[Condition] Result: ${result ? "TRUE ✓" : "FALSE ✗"}`);
-
                             setNodes((nds) =>
                                 nds.map((node) => {
                                     if (node.id === nodeId) {
@@ -399,7 +374,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
 
                     default:
                         // Fallback for non-action nodes (start, constant, end)
-                        console.log(`[${nodeType}] Node triggered (no action logic)`);
                         await new Promise((resolve) => setTimeout(resolve, 1000));
                         setNodes((nds) =>
                             nds.map((node) => {
@@ -471,17 +445,12 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
 
     const onConnect = useCallback(
         (params) => {
-            console.log("=== New Connection ===");
-            console.log("Source Node:", params.source, "| Handle:", params.sourceHandle);
-            console.log("Target Node:", params.target, "| Handle:", params.targetHandle);
-
             setEdges((eds) => {
                 const oppositeConnectionIndex = eds.findIndex(
                     (edge) => edge.source === params.target && edge.target === params.source,
                 );
 
                 if (oppositeConnectionIndex !== -1) {
-                    console.log("Reversing existing connection direction");
                     const newEdges = eds.filter((_, index) => index !== oppositeConnectionIndex);
                     return addEdge(params, newEdges);
                 }
@@ -491,7 +460,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                 );
 
                 if (duplicateExists) {
-                    console.log("Duplicate connection - ignoring");
                     return eds;
                 }
 
@@ -513,7 +481,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                     );
 
                     if (targetHandleHasInput) {
-                        console.log("Target handle already has an incoming connection");
                         alert("This input already has a connection.");
                         return eds;
                     }
