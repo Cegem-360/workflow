@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 
-// Key-Value Builder Component for Body and Headers
-const KeyValueBuilder = ({ value, onChange, placeholder = "value" }) => {
+// Key-Value Builder Modal Component for Body and Headers
+const KeyValueBuilderModal = ({ value, onChange, title = "Edit" }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [mode, setMode] = useState("visual"); // "visual" or "raw"
+    const [entries, setEntries] = useState([]);
+    const [rawValue, setRawValue] = useState(value);
+
     // Parse JSON string to entries array
     const parseToEntries = (jsonStr) => {
         try {
@@ -17,9 +22,9 @@ const KeyValueBuilder = ({ value, onChange, placeholder = "value" }) => {
     };
 
     // Convert entries array to JSON string
-    const entriesToJson = (entries) => {
+    const entriesToJson = (ents) => {
         const obj = {};
-        entries.forEach((entry) => {
+        ents.forEach((entry) => {
             if (entry.key.trim()) {
                 let parsedValue = entry.value;
                 if (entry.type === "number") {
@@ -39,163 +44,311 @@ const KeyValueBuilder = ({ value, onChange, placeholder = "value" }) => {
         return JSON.stringify(obj, null, 2);
     };
 
-    const [mode, setMode] = useState("visual"); // "visual" or "raw"
-    const [entries, setEntries] = useState(() => parseToEntries(value));
+    // Open modal and initialize state
+    const openModal = () => {
+        setEntries(parseToEntries(value));
+        setRawValue(value);
+        setIsOpen(true);
+    };
 
-    // Sync entries when value changes externally (only in raw mode or initial load)
-    useEffect(() => {
-        if (mode === "raw") {
-            setEntries(parseToEntries(value));
+    // Save and close
+    const handleSave = () => {
+        if (mode === "visual") {
+            onChange(entriesToJson(entries));
+        } else {
+            onChange(rawValue);
         }
-    }, [value, mode]);
+        setIsOpen(false);
+    };
+
+    // Cancel and close
+    const handleCancel = () => {
+        setIsOpen(false);
+    };
 
     const addEntry = () => {
-        const newEntries = [...entries, { key: "", value: "", type: "string" }];
-        setEntries(newEntries);
+        setEntries([...entries, { key: "", value: "", type: "string" }]);
     };
 
     const updateEntry = (index, field, newValue) => {
-        const newEntries = entries.map((entry, i) =>
-            i === index ? { ...entry, [field]: newValue } : entry,
+        setEntries(
+            entries.map((entry, i) => (i === index ? { ...entry, [field]: newValue } : entry)),
         );
-        setEntries(newEntries);
-        onChange(entriesToJson(newEntries));
     };
 
     const removeEntry = (index) => {
-        const newEntries = entries.filter((_, i) => i !== index);
-        setEntries(newEntries);
-        onChange(entriesToJson(newEntries));
+        setEntries(entries.filter((_, i) => i !== index));
     };
 
-    const switchToRaw = () => {
-        setMode("raw");
-    };
-
-    const switchToVisual = () => {
-        setEntries(parseToEntries(value));
-        setMode("visual");
-    };
+    // Count entries for preview
+    const entryCount = parseToEntries(value).length;
 
     return (
-        <div className="space-y-2">
-            {/* Mode Toggle */}
-            <div className="flex justify-end gap-1">
-                <button
-                    type="button"
-                    onClick={switchToVisual}
-                    className={`text-xs px-2 py-1 rounded transition-colors ${
-                        mode === "visual"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    }`}
+        <>
+            {/* Trigger Button with Preview */}
+            <button
+                type="button"
+                onClick={openModal}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-left hover:border-blue-400 dark:hover:border-blue-500 transition-colors flex items-center justify-between gap-2"
+            >
+                <span className="text-gray-600 dark:text-gray-400 truncate">
+                    {entryCount > 0 ? (
+                        <span className="font-mono text-xs">
+                            {entryCount} field{entryCount !== 1 ? "s" : ""} configured
+                        </span>
+                    ) : (
+                        <span className="text-gray-400 dark:text-gray-500">
+                            Click to add fields...
+                        </span>
+                    )}
+                </span>
+                <svg
+                    className="w-4 h-4 text-gray-400 flex-shrink-0"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                 >
-                    Visual
-                </button>
-                <button
-                    type="button"
-                    onClick={switchToRaw}
-                    className={`text-xs px-2 py-1 rounded transition-colors ${
-                        mode === "raw"
-                            ? "bg-blue-500 text-white"
-                            : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
-                    }`}
-                >
-                    JSON
-                </button>
-            </div>
+                    <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                    />
+                </svg>
+            </button>
 
-            {mode === "visual" ? (
-                <div className="space-y-2">
-                    {entries.map((entry, index) => (
-                        <div key={index} className="flex gap-2 items-center">
-                            <input
-                                type="text"
-                                value={entry.key}
-                                onChange={(e) => updateEntry(index, "key", e.target.value)}
-                                placeholder="key"
-                                className="flex-1 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            />
-                            <select
-                                value={entry.type}
-                                onChange={(e) => updateEntry(index, "type", e.target.value)}
-                                className="w-20 px-1 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                            >
-                                <option value="string">text</option>
-                                <option value="number">num</option>
-                                <option value="boolean">bool</option>
-                                <option value="json">json</option>
-                            </select>
-                            {entry.type === "boolean" ? (
-                                <select
-                                    value={entry.value}
-                                    onChange={(e) => updateEntry(index, "value", e.target.value)}
-                                    className="flex-1 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-xs bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            {/* Modal */}
+            {isOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    {/* Backdrop */}
+                    <div
+                        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                        onClick={handleCancel}
+                    />
+
+                    {/* Modal Content */}
+                    <div className="relative bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                                {title}
+                            </h3>
+                            <div className="flex items-center gap-2">
+                                {/* Mode Toggle */}
+                                <div className="flex gap-1 mr-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (mode === "raw") {
+                                                setEntries(parseToEntries(rawValue));
+                                            }
+                                            setMode("visual");
+                                        }}
+                                        className={`text-xs px-3 py-1.5 rounded transition-colors ${
+                                            mode === "visual"
+                                                ? "bg-blue-500 text-white"
+                                                : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                        }`}
+                                    >
+                                        Visual
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (mode === "visual") {
+                                                setRawValue(entriesToJson(entries));
+                                            }
+                                            setMode("raw");
+                                        }}
+                                        className={`text-xs px-3 py-1.5 rounded transition-colors ${
+                                            mode === "raw"
+                                                ? "bg-blue-500 text-white"
+                                                : "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600"
+                                        }`}
+                                    >
+                                        JSON
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleCancel}
+                                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                                 >
-                                    <option value="true">true</option>
-                                    <option value="false">false</option>
-                                </select>
+                                    <svg
+                                        className="w-5 h-5"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                    >
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M6 18L18 6M6 6l12 12"
+                                        />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Body */}
+                        <div className="flex-1 overflow-y-auto p-4">
+                            {mode === "visual" ? (
+                                <div className="space-y-3">
+                                    {/* Table Header */}
+                                    {entries.length > 0 && (
+                                        <div className="flex gap-2 text-xs font-medium text-gray-500 dark:text-gray-400 px-1">
+                                            <div className="flex-1">Key</div>
+                                            <div className="w-24">Type</div>
+                                            <div className="flex-1">Value</div>
+                                            <div className="w-8"></div>
+                                        </div>
+                                    )}
+
+                                    {entries.map((entry, index) => (
+                                        <div key={index} className="flex gap-2 items-center">
+                                            <input
+                                                type="text"
+                                                value={entry.key}
+                                                onChange={(e) =>
+                                                    updateEntry(index, "key", e.target.value)
+                                                }
+                                                placeholder="key"
+                                                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                            />
+                                            <select
+                                                value={entry.type}
+                                                onChange={(e) =>
+                                                    updateEntry(index, "type", e.target.value)
+                                                }
+                                                className="w-24 px-2 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                            >
+                                                <option value="string">text</option>
+                                                <option value="number">number</option>
+                                                <option value="boolean">boolean</option>
+                                                <option value="json">json</option>
+                                            </select>
+                                            {entry.type === "boolean" ? (
+                                                <select
+                                                    value={entry.value}
+                                                    onChange={(e) =>
+                                                        updateEntry(index, "value", e.target.value)
+                                                    }
+                                                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                                >
+                                                    <option value="true">true</option>
+                                                    <option value="false">false</option>
+                                                </select>
+                                            ) : (
+                                                <input
+                                                    type={
+                                                        entry.type === "number" ? "number" : "text"
+                                                    }
+                                                    value={entry.value}
+                                                    onChange={(e) =>
+                                                        updateEntry(index, "value", e.target.value)
+                                                    }
+                                                    placeholder="value"
+                                                    className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                                                />
+                                            )}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeEntry(index)}
+                                                className="p-2 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                                            >
+                                                <svg
+                                                    className="w-4 h-4"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="2"
+                                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                    />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    <button
+                                        type="button"
+                                        onClick={addEntry}
+                                        className="w-full py-2.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors flex items-center justify-center gap-2"
+                                    >
+                                        <svg
+                                            className="w-5 h-5"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            viewBox="0 0 24 24"
+                                        >
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth="2"
+                                                d="M12 4v16m8-8H4"
+                                            />
+                                        </svg>
+                                        Add Field
+                                    </button>
+
+                                    {entries.length === 0 && (
+                                        <div className="text-center py-8 text-gray-400 dark:text-gray-500">
+                                            <svg
+                                                className="w-12 h-12 mx-auto mb-3 opacity-50"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                viewBox="0 0 24 24"
+                                            >
+                                                <path
+                                                    strokeLinecap="round"
+                                                    strokeLinejoin="round"
+                                                    strokeWidth="1.5"
+                                                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                                />
+                                            </svg>
+                                            <p>No fields yet</p>
+                                            <p className="text-sm">
+                                                Click "Add Field" to get started
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
                             ) : (
-                                <input
-                                    type={entry.type === "number" ? "number" : "text"}
-                                    value={entry.value}
-                                    onChange={(e) => updateEntry(index, "value", e.target.value)}
-                                    placeholder={placeholder}
-                                    className="flex-1 px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded text-xs font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                                <textarea
+                                    value={rawValue}
+                                    onChange={(e) => setRawValue(e.target.value)}
+                                    rows={15}
+                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                    placeholder='{"key": "value"}'
                                 />
                             )}
+                        </div>
+
+                        {/* Footer */}
+                        <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
                             <button
                                 type="button"
-                                onClick={() => removeEntry(index)}
-                                className="p-1 text-red-500 hover:bg-red-100 dark:hover:bg-red-900/30 rounded transition-colors"
+                                onClick={handleCancel}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
                             >
-                                <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M6 18L18 6M6 6l12 12"
-                                    />
-                                </svg>
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSave}
+                                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+                            >
+                                Save
                             </button>
                         </div>
-                    ))}
-                    <button
-                        type="button"
-                        onClick={addEntry}
-                        className="w-full py-1.5 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded text-xs text-gray-500 dark:text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors flex items-center justify-center gap-1"
-                    >
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M12 4v16m8-8H4"
-                            />
-                        </svg>
-                        Add Field
-                    </button>
+                    </div>
                 </div>
-            ) : (
-                <textarea
-                    value={value}
-                    onChange={(e) => onChange(e.target.value)}
-                    rows={5}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm font-mono bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                    placeholder='{"key": "value"}'
-                />
             )}
-        </div>
+        </>
     );
 };
 
@@ -751,10 +904,10 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
                             Body will be provided by connected input node
                         </div>
                     ) : (
-                        <KeyValueBuilder
+                        <KeyValueBuilderModal
                             value={requestBody}
                             onChange={setRequestBody}
-                            placeholder="value"
+                            title="Edit Request Body"
                         />
                     )}
                 </div>
@@ -782,7 +935,11 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
                         Headers will be provided by connected input node
                     </div>
                 ) : (
-                    <KeyValueBuilder value={headers} onChange={setHeaders} placeholder="value" />
+                    <KeyValueBuilderModal
+                        value={headers}
+                        onChange={setHeaders}
+                        title="Edit Headers"
+                    />
                 )}
             </div>
 
