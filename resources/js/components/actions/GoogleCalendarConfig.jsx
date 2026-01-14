@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { OUTPUT_NODE_TYPES, getNodeTypeLabel } from "../../constants/nodeTypes";
 
 // Component for a field that can be static or dynamic
@@ -532,6 +532,11 @@ const GoogleCalendarConfig = ({ config, onChange, teamId, nodeId, nodes = [], ed
         return null;
     }, [nodeId, nodes, edges]);
 
+    // Track initialization to prevent re-syncing when editing
+    const isInitializedRef = useRef(false);
+    const prevNodeIdRef = useRef(nodeId);
+    const prevConfigRef = useRef(null);
+
     const [operation, setOperation] = useState(config.operation || "create");
     const [calendarId, setCalendarId] = useState(config.calendarId || "primary");
     const [summary, setSummary] = useState(config.summary || "");
@@ -561,7 +566,15 @@ const GoogleCalendarConfig = ({ config, onChange, teamId, nodeId, nodes = [], ed
         config.eventIdMode || (connectedCalendarNode ? "dynamic" : "list"),
     );
 
+    // Sync local state with config - only on initial mount or when switching nodes
     useEffect(() => {
+        if (isInitializedRef.current && prevNodeIdRef.current === nodeId) {
+            return;
+        }
+
+        isInitializedRef.current = true;
+        prevNodeIdRef.current = nodeId;
+
         setOperation(config.operation || "create");
         setCalendarId(config.calendarId || "primary");
         setSummary(config.summary || "");
@@ -577,7 +590,7 @@ const GoogleCalendarConfig = ({ config, onChange, teamId, nodeId, nodes = [], ed
         setDynamicFields(config.dynamicFields || {});
         setDynamicFieldPaths(config.dynamicFieldPaths || {});
         setEventIdMode(config.eventIdMode || (connectedCalendarNode ? "dynamic" : "list"));
-    }, [config, connectedCalendarNode]);
+    }, [config, connectedCalendarNode, nodeId]);
 
     // Helper to toggle dynamic state for a field
     const toggleDynamic = (fieldName, isDynamic) => {
@@ -619,8 +632,9 @@ const GoogleCalendarConfig = ({ config, onChange, teamId, nodeId, nodes = [], ed
         }
     }, [connectionStatus?.connected, teamId]);
 
+    // Propagate changes to parent component
     useEffect(() => {
-        onChange({
+        const newConfig = {
             operation,
             calendarId,
             summary,
@@ -636,7 +650,16 @@ const GoogleCalendarConfig = ({ config, onChange, teamId, nodeId, nodes = [], ed
             dynamicFields,
             dynamicFieldPaths,
             eventIdMode,
-        });
+        };
+
+        // Only call onChange if config actually changed
+        const prevConfig = prevConfigRef.current;
+        if (prevConfig && JSON.stringify(prevConfig) === JSON.stringify(newConfig)) {
+            return;
+        }
+
+        prevConfigRef.current = newConfig;
+        onChange(newConfig);
     }, [
         operation,
         calendarId,
@@ -653,6 +676,7 @@ const GoogleCalendarConfig = ({ config, onChange, teamId, nodeId, nodes = [], ed
         dynamicFieldPaths,
         maxResults,
         eventIdMode,
+        onChange,
     ]);
 
     const checkConnectionStatus = async () => {
