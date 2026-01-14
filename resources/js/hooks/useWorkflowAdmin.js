@@ -243,6 +243,31 @@ export const useWorkflowAdmin = (toast = null) => {
         setWebhookEnabled(false);
     }, []);
 
+    const handleGenerateToken = useCallback(async () => {
+        if (!selectedWorkflow?.id) {
+            notify("warning", "Info", "Mentsd el először a workflow-t a token generálásához");
+            return;
+        }
+
+        try {
+            setLoading(true);
+            const response = await axios.post(
+                `/api/workflows/${selectedWorkflow.id}/generate-webhook-token`,
+            );
+            setSelectedWorkflow(response.data);
+            notify("success", "Token Generated", "Webhook token sikeresen generálva");
+        } catch (error) {
+            console.error("Error generating token:", error);
+            notify(
+                "error",
+                "Error",
+                "Token generálás sikertelen: " + (error.response?.data?.message || error.message),
+            );
+        } finally {
+            setLoading(false);
+        }
+    }, [selectedWorkflow, notify]);
+
     return {
         workflows,
         selectedWorkflow,
@@ -267,5 +292,6 @@ export const useWorkflowAdmin = (toast = null) => {
         handleDeleteWorkflow,
         handleNewWorkflow,
         handleCloseEditor,
+        handleGenerateToken,
     };
 };

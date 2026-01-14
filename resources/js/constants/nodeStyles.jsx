@@ -155,6 +155,17 @@ export const nodeIcons = {
             <path d="M12 12v9" />
         </svg>
     ),
+    branch: (color) => (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <path d="M16 3h5v5M8 3H3v5M3 16v5h5M21 16v5h-5" />
+        </svg>
+    ),
+    join: (color) => (
+        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+            <path d="M8 6l4 6 4-6" />
+            <path d="M12 12v6" />
+        </svg>
+    ),
     template: (color) => (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
             <path d="M4 6h16M4 12h16M4 18h10" />

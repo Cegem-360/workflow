@@ -1,11 +1,13 @@
 import React, { useMemo, useRef, useEffect, useState, useCallback } from "react";
-import { ReactFlow, Background, Panel, useReactFlow } from "@xyflow/react";
+import { ReactFlow, Background, Panel, useReactFlow, useOnViewportChange } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
+import { CircleCheck, GitBranch, GitMerge, Layers, Network, Sparkles } from "lucide-react";
 
 import { nodeTypes } from "./nodes";
 import FloatingEdge from "./FloatingEdge";
 import WorkflowSidebar from "./workflow/WorkflowSidebar";
 import WorkflowPropertiesPanel from "./workflow/WorkflowPropertiesPanel";
+import WorkflowSettingsModal from "./workflow/WorkflowSettingsModal";
 import { useWorkflowEditor } from "@/hooks/useWorkflowEditor";
 import { useWorkflowRunner } from "@/hooks/useWorkflowRunner";
 import { useAutoSave } from "@/hooks/useAutoSave";
@@ -13,78 +15,13 @@ import { useToast } from "@/components/ui/toast";
 import { defaultEdgeOptions, nodeTypeConfig } from "@/constants/workflowConstants";
 import { Button } from "@/components/ui/button";
 
-// Context Menu icons
 const contextMenuIcons = {
-    start: (
-        <svg
-            className="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-        >
-            <circle cx="12" cy="12" r="3" />
-            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-        </svg>
-    ),
-    apiAction: (
-        <svg
-            className="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-        >
-            <path d="M7 8l-4 4 4 4M17 8l4 4-4 4M14 4l-4 16" />
-        </svg>
-    ),
-    branch: (
-        <svg
-            className="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-        >
-            <path d="M16 3h5v5M8 3H3v5M3 16v5h5M21 16v5h-5" />
-        </svg>
-    ),
-    join: (
-        <svg
-            className="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-        >
-            <path d="M8 6l4 6 4-6" />
-            <path d="M12 12v6" />
-        </svg>
-    ),
-    merge: (
-        <svg
-            className="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-        >
-            <path d="M6 3v6l6 3 6-3V3" />
-            <path d="M12 12v9" />
-        </svg>
-    ),
-    end: (
-        <svg
-            className="w-5 h-5"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-        >
-            <path d="M9 12l2 2 4-4" />
-            <circle cx="12" cy="12" r="10" />
-        </svg>
-    ),
+    start: <Sparkles className="w-4 h-4" />,
+    apiAction: <Network className="w-4 h-4" />,
+    merge: <Layers className="w-4 h-4" />,
+    join: <GitMerge className="w-4 h-4" />,
+    branch: <GitBranch className="w-4 h-4" />,
+    end: <CircleCheck className="w-4 h-4" />,
 };
 
 // Context Menu Component
@@ -142,15 +79,12 @@ const ContextMenu = ({ x, y, onClose, onAddNode }) => {
 
 // Zoom Controls Component
 const ZoomControls = ({ onSave, onReset, isSaving }) => {
-    const { zoomIn, zoomOut, fitView, getZoom } = useReactFlow();
+    const { zoomIn, zoomOut, fitView } = useReactFlow();
     const [zoom, setZoom] = useState(100);
 
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setZoom(Math.round(getZoom() * 100));
-        }, 100);
-        return () => clearInterval(interval);
-    }, [getZoom]);
+    useOnViewportChange({
+        onChange: (viewport) => setZoom(Math.round(viewport.zoom * 100)),
+    });
 
     return (
         <div className="flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 shadow-sm">
@@ -200,7 +134,7 @@ const ZoomControls = ({ onSave, onReset, isSaving }) => {
 
             {/* Zoom controls */}
             <button
-                onClick={() => zoomOut()}
+                onClick={zoomOut}
                 className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 title="Zoom out"
             >
@@ -220,7 +154,7 @@ const ZoomControls = ({ onSave, onReset, isSaving }) => {
             </span>
 
             <button
-                onClick={() => zoomIn()}
+                onClick={zoomIn}
                 className="w-8 h-8 flex items-center justify-center text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
                 title="Zoom in"
             >
@@ -262,11 +196,20 @@ const WorkflowEditor = ({
     teamId,
     webhookEnabled = false,
     webhookToken = null,
+    isScheduled = false,
+    scheduleCron = "",
+    scheduleOptions = [],
+    onScheduledChange,
+    onScheduleCronChange,
+    onWebhookEnabledChange,
+    onGenerateToken,
 }) => {
     const reactFlowWrapper = useRef(null);
     const edgeTypes = useMemo(() => ({ floating: FloatingEdge }), []);
     const [isSaving, setIsSaving] = useState(false);
     const [contextMenu, setContextMenu] = useState(null);
+    const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+    const [isGeneratingToken, setIsGeneratingToken] = useState(false);
     const { screenToFlowPosition } = useReactFlow();
 
     // Generate webhook URL from token
@@ -358,11 +301,11 @@ const WorkflowEditor = ({
         }
     }, [autoSaveStatus, toast]);
 
-    const doSave = async () => {
+    const doSave = useCallback(async () => {
         setIsSaving(true);
         await saveNow();
         setIsSaving(false);
-    };
+    }, [saveNow]);
 
     // Context menu handler
     const onPaneContextMenu = useCallback(
@@ -451,11 +394,24 @@ const WorkflowEditor = ({
 
         document.addEventListener("keydown", handleKeyDown);
         return () => document.removeEventListener("keydown", handleKeyDown);
-    }, [handleSave, onSave]);
+    }, [doSave]);
+
+    const handleGenerateToken = useCallback(async () => {
+        if (!onGenerateToken) return;
+        setIsGeneratingToken(true);
+        try {
+            await onGenerateToken();
+        } finally {
+            setIsGeneratingToken(false);
+        }
+    }, [onGenerateToken]);
 
     return (
         <div className="flex gap-4 h-[700px]">
-            <WorkflowSidebar onDragStart={onDragStart} />
+            <WorkflowSidebar
+                onDragStart={onDragStart}
+                onSettingsClick={() => setIsSettingsModalOpen(true)}
+            />
 
             <div
                 className="flex-1 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden"
@@ -659,6 +615,21 @@ const WorkflowEditor = ({
                 onUpdateNodeInputs={handleUpdateInputs}
                 webhookUrl={webhookUrl}
                 webhookEnabled={webhookEnabled}
+            />
+
+            <WorkflowSettingsModal
+                isOpen={isSettingsModalOpen}
+                onClose={() => setIsSettingsModalOpen(false)}
+                isScheduled={isScheduled}
+                scheduleCron={scheduleCron}
+                scheduleOptions={scheduleOptions}
+                webhookEnabled={webhookEnabled}
+                webhookToken={webhookToken}
+                onScheduledChange={onScheduledChange}
+                onScheduleCronChange={onScheduleCronChange}
+                onWebhookEnabledChange={onWebhookEnabledChange}
+                onGenerateToken={handleGenerateToken}
+                isGeneratingToken={isGeneratingToken}
             />
         </div>
     );

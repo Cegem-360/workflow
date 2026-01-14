@@ -76,6 +76,7 @@ const WorkflowEditorView = ({
     loading,
     webhookEnabled,
     onWebhookEnabledChange,
+    onGenerateToken,
 }) => {
     const initialNodes =
         selectedWorkflow?.nodes?.map((node) => {
@@ -155,6 +156,13 @@ const WorkflowEditorView = ({
                     teamId={teamId}
                     webhookEnabled={webhookEnabled}
                     webhookToken={selectedWorkflow?.webhook_token || null}
+                    isScheduled={isScheduled}
+                    scheduleCron={scheduleCron}
+                    scheduleOptions={scheduleOptions}
+                    onScheduledChange={onScheduledChange}
+                    onScheduleCronChange={onScheduleCronChange}
+                    onWebhookEnabledChange={onWebhookEnabledChange}
+                    onGenerateToken={onGenerateToken}
                 />
             </ReactFlowProvider>
 

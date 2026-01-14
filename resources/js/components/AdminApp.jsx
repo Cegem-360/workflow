@@ -30,6 +30,7 @@ const AdminApp = () => {
         handleDeleteWorkflow,
         handleNewWorkflow,
         handleCloseEditor,
+        handleGenerateToken,
     } = useWorkflowAdmin(toast);
 
     return (
@@ -65,6 +66,7 @@ const AdminApp = () => {
                     loading={loading}
                     webhookEnabled={webhookEnabled}
                     onWebhookEnabledChange={setWebhookEnabled}
+                    onGenerateToken={handleGenerateToken}
                 />
             ) : (
                 <WorkflowList

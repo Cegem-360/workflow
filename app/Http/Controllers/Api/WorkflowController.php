@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\EmailTemplate;
 use App\Models\Team;
 use App\Models\Workflow;
-use App\Models\WorkflowConnection;
-use App\Models\WorkflowNode;
+use App\Services\Google\GoogleCalendarService;
+use App\Services\Google\GoogleDocsService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -15,6 +15,11 @@ use Illuminate\Support\Facades\Mail;
 
 class WorkflowController extends Controller
 {
+    public function __construct(
+        protected GoogleCalendarService $calendarService,
+        protected GoogleDocsService $docsService
+    ) {}
+
     public function index(): JsonResponse
     {
         $workflows = Workflow::with(['nodes', 'connections'])->get();
@@ -50,36 +55,12 @@ class WorkflowController extends Controller
                 'metadata' => $validated['metadata'] ?? null,
             ]);
 
-            // Calculate next run time if scheduled
             if ($workflow->is_scheduled && $workflow->schedule_cron) {
                 $workflow->update(['next_run_at' => $workflow->calculateNextRunAt()]);
             }
 
-            if (isset($validated['nodes'])) {
-                foreach ($validated['nodes'] as $node) {
-                    WorkflowNode::create([
-                        'workflow_id' => $workflow->id,
-                        'node_id' => $node['id'],
-                        'type' => $node['type'],
-                        'label' => $node['data']['label'] ?? null,
-                        'data' => $node['data'] ?? null,
-                        'position' => $node['position'] ?? null,
-                    ]);
-                }
-            }
-
-            if (isset($validated['connections'])) {
-                foreach ($validated['connections'] as $connection) {
-                    WorkflowConnection::create([
-                        'workflow_id' => $workflow->id,
-                        'connection_id' => $connection['id'],
-                        'source_node_id' => $connection['source'],
-                        'target_node_id' => $connection['target'],
-                        'source_handle' => $connection['sourceHandle'] ?? null,
-                        'target_handle' => $connection['targetHandle'] ?? null,
-                    ]);
-                }
-            }
+            $this->syncNodes($workflow, $validated['nodes'] ?? []);
+            $this->syncConnections($workflow, $validated['connections'] ?? []);
 
             DB::commit();
 
@@ -91,14 +72,12 @@ class WorkflowController extends Controller
         }
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Workflow $workflow): JsonResponse
     {
-        $workflow = Workflow::with(['nodes', 'connections'])->findOrFail($id);
-
-        return response()->json($workflow);
+        return response()->json($workflow->load(['nodes', 'connections']));
     }
 
-    public function update(Request $request, string $id): JsonResponse
+    public function update(Request $request, Workflow $workflow): JsonResponse
     {
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
@@ -115,56 +94,19 @@ class WorkflowController extends Controller
 
         DB::beginTransaction();
         try {
-            $workflow = Workflow::findOrFail($id);
+            $workflowFields = ['name', 'description', 'team_id', 'is_active', 'is_scheduled', 'schedule_cron', 'webhook_enabled', 'metadata'];
+            $workflow->update(collect($validated)->only($workflowFields)->toArray());
 
-            $updateData = [
-                'name' => $validated['name'] ?? $workflow->name,
-                'description' => $validated['description'] ?? $workflow->description,
-                'team_id' => $validated['team_id'] ?? $workflow->team_id,
-                'is_active' => $validated['is_active'] ?? $workflow->is_active,
-                'is_scheduled' => $validated['is_scheduled'] ?? $workflow->is_scheduled,
-                'schedule_cron' => $validated['schedule_cron'] ?? $workflow->schedule_cron,
-                'webhook_enabled' => $validated['webhook_enabled'] ?? $workflow->webhook_enabled,
-                'metadata' => $validated['metadata'] ?? $workflow->metadata,
-            ];
-
-            $workflow->update($updateData);
-
-            // Recalculate next_run_at if scheduling changed
-            if (isset($validated['is_scheduled']) || isset($validated['schedule_cron'])) {
-                if ($workflow->is_scheduled && $workflow->schedule_cron) {
-                    $workflow->update(['next_run_at' => $workflow->calculateNextRunAt()]);
-                } elseif (! $workflow->is_scheduled) {
-                    $workflow->update(['next_run_at' => null]);
-                }
-            }
+            $this->updateScheduleIfNeeded($workflow, $validated);
 
             if (isset($validated['nodes'])) {
                 $workflow->nodes()->delete();
-                foreach ($validated['nodes'] as $node) {
-                    WorkflowNode::create([
-                        'workflow_id' => $workflow->id,
-                        'node_id' => $node['id'],
-                        'type' => $node['type'],
-                        'label' => $node['data']['label'] ?? null,
-                        'data' => $node['data'] ?? null,
-                        'position' => $node['position'] ?? null,
-                    ]);
-                }
+                $this->syncNodes($workflow, $validated['nodes']);
             }
 
             if (isset($validated['connections'])) {
                 $workflow->connections()->delete();
-                foreach ($validated['connections'] as $connection) {
-                    WorkflowConnection::create([
-                        'workflow_id' => $workflow->id,
-                        'connection_id' => $connection['id'],
-                        'source_node_id' => $connection['source'],
-                        'target_node_id' => $connection['target'],
-                        'source_handle' => $connection['sourceHandle'] ?? null,
-                        'target_handle' => $connection['targetHandle'] ?? null,
-                    ]);
-                }
+                $this->syncConnections($workflow, $validated['connections']);
             }
 
             DB::commit();
@@ -177,9 +119,8 @@ class WorkflowController extends Controller
         }
     }
 
-    public function destroy(string $id): JsonResponse
+    public function destroy(Workflow $workflow): JsonResponse
     {
-        $workflow = Workflow::findOrFail($id);
         $workflow->delete();
 
         return response()->json(['message' => 'Workflow deleted successfully']);
@@ -189,11 +130,7 @@ class WorkflowController extends Controller
     {
         $workflow->generateWebhookToken();
 
-        return response()->json([
-            'success' => true,
-            'webhook_token' => $workflow->webhook_token,
-            'webhook_url' => $workflow->webhook_url,
-        ]);
+        return response()->json($workflow->load(['nodes', 'connections']));
     }
 
     public function emailTemplates(Request $request): JsonResponse
@@ -267,20 +204,12 @@ class WorkflowController extends Controller
 
     public function scheduleOptions(Request $request): JsonResponse
     {
-        $teamId = $request->query('team_id');
-
-        if (! $teamId) {
-            return response()->json([]);
-        }
-
-        $team = Team::find($teamId);
+        $team = Team::find($request->query('team_id'));
 
         if (! $team) {
             return response()->json([]);
         }
-        /**
-         * @var Team $team
-         */
+
         $options = $team->availableScheduleOptions()
             ->get()
             ->map(fn ($option) => [
@@ -320,12 +249,10 @@ class WorkflowController extends Controller
                 ], 400);
             }
 
-            $calendarService = app(\App\Services\Google\GoogleCalendarService::class);
             $calendarId = $validated['calendarId'] ?? 'primary';
-            $operation = $validated['operation'];
 
-            $result = match ($operation) {
-                'create' => $calendarService->createEvent($team, $calendarId, [
+            $result = match ($validated['operation']) {
+                'create' => $this->calendarService->createEvent($team, $calendarId, [
                     'summary' => $validated['summary'] ?? '',
                     'description' => $validated['description'] ?? '',
                     'location' => $validated['location'] ?? '',
@@ -339,12 +266,12 @@ class WorkflowController extends Controller
                     ],
                     'attendees' => $this->parseAttendees($validated['attendees'] ?? ''),
                 ]),
-                'list' => $calendarService->listEvents($team, $calendarId, [
+                'list' => $this->calendarService->listEvents($team, $calendarId, [
                     'timeMin' => $validated['timeMin'] ?? null,
                     'timeMax' => $validated['timeMax'] ?? null,
                     'maxResults' => $validated['maxResults'] ?? 10,
                 ]),
-                'update' => $calendarService->updateEvent(
+                'update' => $this->calendarService->updateEvent(
                     $team,
                     $calendarId,
                     $validated['eventId'] ?? '',
@@ -362,7 +289,7 @@ class WorkflowController extends Controller
                         ] : null,
                     ])
                 ),
-                'delete' => $calendarService->deleteEvent($team, $calendarId, $validated['eventId'] ?? ''),
+                'delete' => $this->calendarService->deleteEvent($team, $calendarId, $validated['eventId'] ?? ''),
             };
 
             return response()->json([
@@ -401,23 +328,20 @@ class WorkflowController extends Controller
                 ], 400);
             }
 
-            $docsService = app(\App\Services\Google\GoogleDocsService::class);
-            $operation = $validated['operation'];
-
-            $result = match ($operation) {
-                'create' => $docsService->createDocument(
+            $result = match ($validated['operation']) {
+                'create' => $this->docsService->createDocument(
                     $team,
                     $validated['title'] ?? 'Untitled Document',
                     $validated['content'] ?? null
                 ),
-                'read' => $docsService->getDocument($team, $validated['documentId'] ?? ''),
-                'update' => $docsService->updateDocument($team, $validated['documentId'] ?? '', [
+                'read' => $this->docsService->getDocument($team, $validated['documentId'] ?? ''),
+                'update' => $this->docsService->updateDocument($team, $validated['documentId'] ?? '', [
                     'operation' => $validated['updateOperation'] ?? 'append',
                     'content' => $validated['content'] ?? '',
                     'searchText' => $validated['searchText'] ?? '',
                     'insertIndex' => $validated['insertIndex'] ?? 1,
                 ]),
-                'list' => $docsService->listDocuments($team, [
+                'list' => $this->docsService->listDocuments($team, [
                     'maxResults' => $validated['maxResults'] ?? 20,
                 ]),
             };
@@ -436,6 +360,45 @@ class WorkflowController extends Controller
                 'success' => false,
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    protected function syncNodes(Workflow $workflow, array $nodes): void
+    {
+        foreach ($nodes as $node) {
+            $workflow->nodes()->create([
+                'node_id' => $node['id'],
+                'type' => $node['type'],
+                'label' => $node['data']['label'] ?? null,
+                'data' => $node['data'] ?? null,
+                'position' => $node['position'] ?? null,
+            ]);
+        }
+    }
+
+    protected function syncConnections(Workflow $workflow, array $connections): void
+    {
+        foreach ($connections as $connection) {
+            $workflow->connections()->create([
+                'connection_id' => $connection['id'],
+                'source_node_id' => $connection['source'],
+                'target_node_id' => $connection['target'],
+                'source_handle' => $connection['sourceHandle'] ?? null,
+                'target_handle' => $connection['targetHandle'] ?? null,
+            ]);
+        }
+    }
+
+    protected function updateScheduleIfNeeded(Workflow $workflow, array $validated): void
+    {
+        if (! isset($validated['is_scheduled']) && ! isset($validated['schedule_cron'])) {
+            return;
+        }
+
+        if ($workflow->is_scheduled && $workflow->schedule_cron) {
+            $workflow->update(['next_run_at' => $workflow->calculateNextRunAt()]);
+        } elseif (! $workflow->is_scheduled) {
+            $workflow->update(['next_run_at' => null]);
         }
     }
 
