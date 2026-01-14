@@ -1726,7 +1726,9 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                     let nodeResult = null;
 
                     // For non-start nodes, ensure input dependencies are executed first
-                    if (node.data.type !== "start" && !executedNodes.has(node.id)) {
+                    const isStartNode =
+                        node.data.type === "start" || node.data.type === "webhookTrigger";
+                    if (!isStartNode && !executedNodes.has(node.id)) {
                         nodeResult = await executeNodeWithDependencies(
                             node,
                             visited,

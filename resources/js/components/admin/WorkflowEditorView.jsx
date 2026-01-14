@@ -17,9 +17,17 @@ const getReactFlowNodeType = (dataType) => {
     ];
     if (actionTypes.includes(dataType)) return "action";
     if (
-        ["start", "end", "condition", "constant", "branch", "join", "merge", "template"].includes(
-            dataType,
-        )
+        [
+            "start",
+            "end",
+            "condition",
+            "constant",
+            "branch",
+            "join",
+            "merge",
+            "template",
+            "webhookTrigger",
+        ].includes(dataType)
     )
         return dataType;
     return "action"; // fallback for old 'custom' nodes
@@ -32,6 +40,7 @@ const getNodeDimensions = (dataType) => {
             return { width: 120, height: 120 };
         case "start":
         case "end":
+        case "webhookTrigger":
             return { width: 120, height: 50 };
         case "constant":
             return { width: 140, height: 60 };

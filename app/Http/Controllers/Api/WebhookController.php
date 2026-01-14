@@ -24,9 +24,7 @@ class WebhookController extends Controller
             ], 404);
         }
 
-        $payload = $request->all();
-
-        ExecuteWorkflow::dispatch($workflow, $payload);
+        ExecuteWorkflow::dispatch($workflow, $request->all());
 
         return response()->json([
             'success' => true,

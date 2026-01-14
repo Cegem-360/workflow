@@ -306,6 +306,24 @@ const WorkflowEditor = ({ initialNodes = [], initialEdges = [], onSave, teamId }
         teamId,
     );
 
+    // Check for multiple trigger nodes
+    const triggerWarning = useMemo(() => {
+        const triggerTypes = ["start", "webhookTrigger"];
+        const triggers = nodes.filter((node) => {
+            const nodeType = node.data?.type || node.type;
+            return triggerTypes.includes(nodeType);
+        });
+
+        if (triggers.length > 1) {
+            const triggerNames = triggers.map((t) => {
+                const type = t.data?.type || t.type;
+                return type === "start" ? "Start" : "Webhook Trigger";
+            });
+            return `A workflow több triggert tartalmaz (${triggerNames.join(", ")}). Csak az első trigger fog lefutni.`;
+        }
+        return null;
+    }, [nodes]);
+
     // Toast notifications
     const toast = useToast();
 
@@ -526,6 +544,26 @@ const WorkflowEditor = ({ initialNodes = [], initialEdges = [], onSave, teamId }
                             )}
                         </div>
                     </Panel>
+
+                    {/* Top Center - Multiple Trigger Warning */}
+                    {triggerWarning && (
+                        <Panel position="top-center" className="m-4">
+                            <div className="flex items-center gap-2 bg-amber-50 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-4 py-2 shadow-sm">
+                                <svg
+                                    className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    strokeWidth="2"
+                                >
+                                    <path d="M12 9v4M12 17h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+                                </svg>
+                                <span className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                                    {triggerWarning}
+                                </span>
+                            </div>
+                        </Panel>
+                    )}
 
                     {/* Top Right - Run Button */}
                     <Panel position="top-right" className="m-4">

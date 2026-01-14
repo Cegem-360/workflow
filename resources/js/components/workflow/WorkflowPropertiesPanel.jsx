@@ -170,6 +170,9 @@ const WorkflowPropertiesPanel = ({
                                         <EmailActionConfig
                                             config={parsedConfig}
                                             onChange={configChangeHandler}
+                                            nodeId={selectedNode.id}
+                                            nodes={nodes}
+                                            edges={edges}
                                         />
                                     </div>
                                 );

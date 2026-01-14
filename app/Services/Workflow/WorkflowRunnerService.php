@@ -177,7 +177,7 @@ class WorkflowRunnerService
             $data = $node->data ?? [];
             $type = $data['type'] ?? $node->type;
 
-            return $type === 'start' || $type === 'webhookTrigger';
+            return in_array($type, ['start', 'webhookTrigger']);
         });
     }
 
