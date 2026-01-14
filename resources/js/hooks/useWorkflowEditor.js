@@ -2,65 +2,144 @@ import { useCallback, useState, useEffect, useRef } from "react";
 import { useNodesState, useEdgesState, addEdge, useReactFlow } from "@xyflow/react";
 import { nodeTypeConfig } from "@/constants/workflowConstants";
 import { getLayoutedElements } from "@/utils/elkLayout";
+import { useDarkMode } from "@/hooks/useDarkMode";
 import axios from "axios";
 
 // Map data types to React Flow node types
+const DATA_TYPE_TO_REACT_FLOW = {
+    googleCalendarAction: "googleCalendar",
+    googleDocsAction: "googleDocs",
+};
+
+const ACTION_TYPES = new Set([
+    "apiAction",
+    "emailAction",
+    "databaseAction",
+    "scriptAction",
+    "webhookAction",
+    "action",
+]);
+
+const PASSTHROUGH_TYPES = new Set([
+    "start",
+    "end",
+    "condition",
+    "constant",
+    "branch",
+    "join",
+    "merge",
+    "template",
+    "webhookTrigger",
+]);
+
 const getReactFlowNodeType = (dataType) => {
-    if (dataType === "googleCalendarAction") return "googleCalendar";
-    if (dataType === "googleDocsAction") return "googleDocs";
-    const actionTypes = [
-        "apiAction",
-        "emailAction",
-        "databaseAction",
-        "scriptAction",
-        "webhookAction",
-        "action",
-    ];
-    if (actionTypes.includes(dataType)) return "action";
-    if (
-        [
-            "start",
-            "end",
-            "condition",
-            "constant",
-            "branch",
-            "join",
-            "merge",
-            "template",
-            "webhookTrigger",
-        ].includes(dataType)
-    )
+    if (DATA_TYPE_TO_REACT_FLOW[dataType]) {
+        return DATA_TYPE_TO_REACT_FLOW[dataType];
+    }
+    if (ACTION_TYPES.has(dataType)) {
+        return "action";
+    }
+    if (PASSTHROUGH_TYPES.has(dataType)) {
         return dataType;
-    return "action"; // fallback
+    }
+    return "action";
 };
 
 // Get default node dimensions based on type
-const getNodeDimensions = (nodeType) => {
-    switch (nodeType) {
-        case "condition":
-            return { width: 120, height: 120 };
-        case "start":
-        case "end":
-        case "webhookTrigger":
-            return { width: 120, height: 50 };
-        case "constant":
-            return { width: 140, height: 60 };
-        case "branch":
-        case "join":
-        case "merge":
-        case "template":
-            return { width: 220, height: 90 };
-        case "googleCalendar":
-            return { width: 240, height: 80 };
-        case "googleDocs":
-            return { width: 240, height: 80 };
+const NODE_DIMENSIONS = {
+    condition: { width: 120, height: 120 },
+    start: { width: 120, height: 50 },
+    end: { width: 120, height: 50 },
+    webhookTrigger: { width: 120, height: 50 },
+    constant: { width: 140, height: 60 },
+    branch: { width: 220, height: 90 },
+    join: { width: 220, height: 90 },
+    merge: { width: 220, height: 90 },
+    template: { width: 220, height: 90 },
+    googleCalendar: { width: 240, height: 80 },
+    googleDocs: { width: 240, height: 80 },
+};
+
+const DEFAULT_DIMENSIONS = { width: 180, height: 70 };
+
+const getNodeDimensions = (nodeType) => NODE_DIMENSIONS[nodeType] || DEFAULT_DIMENSIONS;
+
+// Default data for specific node types
+const NODE_TYPE_DEFAULTS = {
+    branch: { outputs: ["output-1", "output-2"] },
+    join: { inputs: ["input-1", "input-2"] },
+    merge: { inputs: ["input-1", "input-2"], config: { separator: "" } },
+    template: { inputs: ["input-1", "input-2"], config: { template: "${input1} ${input2}" } },
+};
+
+// Helper to update a single node's data
+const updateNodeData = (nodes, nodeId, dataUpdates) =>
+    nodes.map((node) =>
+        node.id === nodeId ? { ...node, data: { ...node.data, ...dataUpdates } } : node,
+    );
+
+// Helper to build axios config for API requests
+const buildApiConfig = (config) => {
+    const { method = "POST", url, requestBody = {}, headers = {} } = config;
+    const lowerMethod = method.toLowerCase();
+
+    const axiosConfig = {
+        method: lowerMethod,
+        url,
+        headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+            ...headers,
+        },
+    };
+
+    if (["post", "put", "patch"].includes(lowerMethod)) {
+        axiosConfig.data = requestBody;
+    }
+
+    return axiosConfig;
+};
+
+// Condition evaluation logic
+const evaluateCondition = (operator, valueA, valueB) => {
+    const numA = parseFloat(valueA);
+    const numB = parseFloat(valueB);
+
+    switch (operator) {
+        case "equals":
+            return valueA == valueB;
+        case "strictEquals":
+            return valueA === valueB;
+        case "notEquals":
+            return valueA != valueB;
+        case "greaterThan":
+            return numA > numB;
+        case "lessThan":
+            return numA < numB;
+        case "greaterOrEqual":
+            return numA >= numB;
+        case "lessOrEqual":
+            return numA <= numB;
+        case "contains":
+            return String(valueA).includes(String(valueB));
+        case "isEmpty":
+            return valueA === "" || valueA === null || valueA === undefined;
+        case "isNotEmpty":
+            return valueA !== "" && valueA !== null && valueA !== undefined;
+        case "isTrue":
+            return valueA === true || valueA === "true" || valueA === 1 || valueA === "1";
+        case "isFalse":
+            return valueA === false || valueA === "false" || valueA === 0 || valueA === "0";
         default:
-            return { width: 180, height: 70 };
+            return false;
     }
 };
 
 export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
     const { screenToFlowPosition } = useReactFlow();
+    const isDarkMode = useDarkMode();
+    const colorMode = isDarkMode ? "dark" : "light";
+
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [selectedNode, setSelectedNode] = useState(null);
@@ -68,9 +147,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
     const [nodeLabel, setNodeLabel] = useState("");
     const [nodeDescription, setNodeDescription] = useState("");
     const [nodeConfig, setNodeConfig] = useState("");
-    const [colorMode, setColorMode] = useState(
-        document.documentElement.classList.contains("dark") ? "dark" : "light",
-    );
     const [snapToGrid, setSnapToGrid] = useState(true);
 
     const handleNodeDelete = useCallback(
@@ -138,17 +214,7 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
 
     const handleNodeTrigger = useCallback(
         async (nodeId, nodeData) => {
-            setNodes((nds) =>
-                nds.map((node) => {
-                    if (node.id === nodeId) {
-                        return {
-                            ...node,
-                            data: { ...node.data, status: "loading" },
-                        };
-                    }
-                    return node;
-                }),
-            );
+            setNodes((nds) => updateNodeData(nds, nodeId, { status: "loading" }));
 
             try {
                 const nodeType = nodeData.type;
@@ -157,44 +223,12 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                 switch (nodeType) {
                     case "action":
                         // Backwards compatibility: old 'action' nodes with actionType config
-                        if (nodeData.config && nodeData.config.url) {
-                            const {
-                                method = "POST",
-                                url,
-                                requestBody = {},
-                                headers = {},
-                            } = nodeData.config;
-
-                            const config = {
-                                method: method.toLowerCase(),
-                                url: url,
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    Accept: "application/json",
-                                    ...headers,
-                                },
-                            };
-
-                            // Add data for POST, PUT, PATCH requests
-                            if (["post", "put", "patch"].includes(method.toLowerCase())) {
-                                config.data = requestBody;
-                            }
-
-                            const response = await axios(config);
-
+                        if (nodeData.config?.url) {
+                            const response = await axios(buildApiConfig(nodeData.config));
                             setNodes((nds) =>
-                                nds.map((node) => {
-                                    if (node.id === nodeId) {
-                                        return {
-                                            ...node,
-                                            data: {
-                                                ...node.data,
-                                                status: "success",
-                                                lastResponse: response.data,
-                                            },
-                                        };
-                                    }
-                                    return node;
+                                updateNodeData(nds, nodeId, {
+                                    status: "success",
+                                    lastResponse: response.data,
                                 }),
                             );
                         } else {
@@ -205,44 +239,12 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                         break;
 
                     case "apiAction":
-                        if (nodeData.config && nodeData.config.url) {
-                            const {
-                                method = "POST",
-                                url,
-                                requestBody = {},
-                                headers = {},
-                            } = nodeData.config;
-
-                            const config = {
-                                method: method.toLowerCase(),
-                                url: url,
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    Accept: "application/json",
-                                    ...headers,
-                                },
-                            };
-
-                            // Add data for POST, PUT, PATCH requests
-                            if (["post", "put", "patch"].includes(method.toLowerCase())) {
-                                config.data = requestBody;
-                            }
-
-                            const response = await axios(config);
-
+                        if (nodeData.config?.url) {
+                            const response = await axios(buildApiConfig(nodeData.config));
                             setNodes((nds) =>
-                                nds.map((node) => {
-                                    if (node.id === nodeId) {
-                                        return {
-                                            ...node,
-                                            data: {
-                                                ...node.data,
-                                                status: "success",
-                                                lastResponse: response.data,
-                                            },
-                                        };
-                                    }
-                                    return node;
+                                updateNodeData(nds, nodeId, {
+                                    status: "success",
+                                    lastResponse: response.data,
                                 }),
                             );
                         } else {
@@ -268,25 +270,14 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                                 data: customData,
                             };
 
-                            // Simulate API call to backend
                             const response = await axios.post(
                                 "/api/workflows/actions/email",
                                 emailPayload,
                             );
-
                             setNodes((nds) =>
-                                nds.map((node) => {
-                                    if (node.id === nodeId) {
-                                        return {
-                                            ...node,
-                                            data: {
-                                                ...node.data,
-                                                status: "success",
-                                                lastResponse: response.data,
-                                            },
-                                        };
-                                    }
-                                    return node;
+                                updateNodeData(nds, nodeId, {
+                                    status: "success",
+                                    lastResponse: response.data,
                                 }),
                             );
                         } else {
@@ -303,120 +294,32 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                     case "webhookAction":
                         throw new Error("Webhook action is not yet implemented");
 
-                    case "condition":
-                        {
-                            const config = nodeData.config || {};
-                            const { operator = "equals", valueA, valueB } = config;
+                    case "condition": {
+                        const { operator = "equals", valueA, valueB } = nodeData.config || {};
+                        const result = evaluateCondition(operator, valueA, valueB);
 
-                            let result = false;
-
-                            // Convert values for comparison
-                            const a = valueA;
-                            const b = valueB;
-                            const numA = parseFloat(a);
-                            const numB = parseFloat(b);
-
-                            switch (operator) {
-                                case "equals":
-                                    result = a == b;
-                                    break;
-                                case "strictEquals":
-                                    result = a === b;
-                                    break;
-                                case "notEquals":
-                                    result = a != b;
-                                    break;
-                                case "greaterThan":
-                                    result = numA > numB;
-                                    break;
-                                case "lessThan":
-                                    result = numA < numB;
-                                    break;
-                                case "greaterOrEqual":
-                                    result = numA >= numB;
-                                    break;
-                                case "lessOrEqual":
-                                    result = numA <= numB;
-                                    break;
-                                case "contains":
-                                    result = String(a).includes(String(b));
-                                    break;
-                                case "isEmpty":
-                                    result = a === "" || a === null || a === undefined;
-                                    break;
-                                case "isNotEmpty":
-                                    result = a !== "" && a !== null && a !== undefined;
-                                    break;
-                                case "isTrue":
-                                    result = a === true || a === "true" || a === 1 || a === "1";
-                                    break;
-                                case "isFalse":
-                                    result = a === false || a === "false" || a === 0 || a === "0";
-                                    break;
-                                default:
-                                    result = false;
-                            }
-
-                            setNodes((nds) =>
-                                nds.map((node) => {
-                                    if (node.id === nodeId) {
-                                        return {
-                                            ...node,
-                                            data: {
-                                                ...node.data,
-                                                status: "success",
-                                                conditionResult: result,
-                                                lastEvaluation: {
-                                                    valueA: a,
-                                                    valueB: b,
-                                                    operator,
-                                                    result,
-                                                },
-                                            },
-                                        };
-                                    }
-                                    return node;
-                                }),
-                            );
-                        }
+                        setNodes((nds) =>
+                            updateNodeData(nds, nodeId, {
+                                status: "success",
+                                conditionResult: result,
+                                lastEvaluation: { valueA, valueB, operator, result },
+                            }),
+                        );
                         break;
+                    }
 
                     default:
                         // Fallback for non-action nodes (start, constant, end)
                         await new Promise((resolve) => setTimeout(resolve, 1000));
-                        setNodes((nds) =>
-                            nds.map((node) => {
-                                if (node.id === nodeId) {
-                                    return {
-                                        ...node,
-                                        data: {
-                                            ...node.data,
-                                            status: "success",
-                                        },
-                                    };
-                                }
-                                return node;
-                            }),
-                        );
+                        setNodes((nds) => updateNodeData(nds, nodeId, { status: "success" }));
                         break;
                 }
             } catch (error) {
+                const errorMessage = error.response?.data || error.message;
                 setNodes((nds) =>
-                    nds.map((node) => {
-                        if (node.id === nodeId) {
-                            return {
-                                ...node,
-                                data: {
-                                    ...node.data,
-                                    status: "error",
-                                    lastError: error.response?.data || error.message,
-                                },
-                            };
-                        }
-                        return node;
-                    }),
+                    updateNodeData(nds, nodeId, { status: "error", lastError: errorMessage }),
                 );
-                console.error("Failed to execute action:", error.response?.data || error.message);
+                console.error("Failed to execute action:", errorMessage);
             }
         },
         [setNodes],
@@ -437,20 +340,6 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
             })),
         );
     }, [handleNodeTrigger, handleNodeDelete, handleUpdateOutputs, handleUpdateInputs, setNodes]);
-
-    useEffect(() => {
-        const observer = new MutationObserver(() => {
-            const isDark = document.documentElement.classList.contains("dark");
-            setColorMode(isDark ? "dark" : "light");
-        });
-
-        observer.observe(document.documentElement, {
-            attributes: true,
-            attributeFilter: ["class"],
-        });
-
-        return () => observer.disconnect();
-    }, []);
 
     const onConnect = useCallback(
         (params) => {
@@ -527,7 +416,7 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
             const reactFlowType = getReactFlowNodeType(dataType);
             const dimensions = getNodeDimensions(dataType);
 
-            // Set default outputs/inputs for branch/join nodes
+            const typeDefaults = NODE_TYPE_DEFAULTS[dataType] || {};
             const nodeData = {
                 label: `${nodeTypeInfo.label} Node`,
                 type: dataType,
@@ -538,29 +427,8 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
                 onDelete: handleNodeDelete,
                 onUpdateOutputs: handleUpdateOutputs,
                 onUpdateInputs: handleUpdateInputs,
+                ...typeDefaults,
             };
-
-            // Add default outputs for branch nodes
-            if (dataType === "branch") {
-                nodeData.outputs = ["output-1", "output-2"];
-            }
-
-            // Add default inputs for join nodes
-            if (dataType === "join") {
-                nodeData.inputs = ["input-1", "input-2"];
-            }
-
-            // Add default inputs and config for merge nodes
-            if (dataType === "merge") {
-                nodeData.inputs = ["input-1", "input-2"];
-                nodeData.config = { separator: "" };
-            }
-
-            // Add default inputs and config for template nodes
-            if (dataType === "template") {
-                nodeData.inputs = ["input-1", "input-2"];
-                nodeData.config = { template: "${input1} ${input2}" };
-            }
 
             const newNode = {
                 id: `node-${Date.now()}`,
@@ -595,37 +463,28 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
         setSelectedNode(null);
     }, []);
 
-    // Auto-update node when config changes (debounced to prevent excessive updates)
+    // Auto-update node when config changes (debounced)
     const autoUpdateTimeoutRef = useRef(null);
     useEffect(() => {
-        if (!selectedNode || !nodeConfig) return;
+        if (!selectedNode || !nodeConfig) {
+            return;
+        }
 
-        // Clear any pending timeout
         if (autoUpdateTimeoutRef.current) {
             clearTimeout(autoUpdateTimeoutRef.current);
         }
 
-        // Debounce the update by 300ms
         autoUpdateTimeoutRef.current = setTimeout(() => {
             try {
                 const parsedConfig = JSON.parse(nodeConfig || "{}");
                 setNodes((nds) =>
-                    nds.map((node) => {
-                        if (node.id === selectedNode.id) {
-                            return {
-                                ...node,
-                                data: {
-                                    ...node.data,
-                                    label: nodeLabel,
-                                    description: nodeDescription,
-                                    config: parsedConfig,
-                                },
-                            };
-                        }
-                        return node;
+                    updateNodeData(nds, selectedNode.id, {
+                        label: nodeLabel,
+                        description: nodeDescription,
+                        config: parsedConfig,
                     }),
                 );
-            } catch (e) {
+            } catch {
                 // Invalid JSON, skip auto-update
             }
         }, 300);
@@ -638,30 +497,23 @@ export const useWorkflowEditor = (initialNodes = [], initialEdges = []) => {
     }, [selectedNode?.id, nodeConfig, nodeLabel, nodeDescription, setNodes]);
 
     const updateSelectedNode = useCallback(() => {
-        if (!selectedNode) return;
+        if (!selectedNode) {
+            return;
+        }
 
-        let parsedConfig = {};
+        let parsedConfig;
         try {
             parsedConfig = JSON.parse(nodeConfig || "{}");
-        } catch (e) {
+        } catch {
             alert("Invalid JSON in configuration");
             return;
         }
 
         setNodes((nds) =>
-            nds.map((node) => {
-                if (node.id === selectedNode.id) {
-                    return {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            label: nodeLabel,
-                            description: nodeDescription,
-                            config: parsedConfig,
-                        },
-                    };
-                }
-                return node;
+            updateNodeData(nds, selectedNode.id, {
+                label: nodeLabel,
+                description: nodeDescription,
+                config: parsedConfig,
             }),
         );
     }, [selectedNode, nodeLabel, nodeDescription, nodeConfig, setNodes]);

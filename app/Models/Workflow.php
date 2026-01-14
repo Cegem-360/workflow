@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Cron\CronExpression;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -154,5 +155,18 @@ class Workflow extends Model
         $this->update([
             'webhook_token' => Str::random(40),
         ]);
+    }
+
+    /**
+     * Scope to find workflows with an active webhook by token.
+     *
+     * @param  Builder<Workflow>  $query
+     * @return Builder<Workflow>
+     */
+    public function scopeActiveWebhook(Builder $query, string $token): Builder
+    {
+        return $query->where('webhook_token', $token)
+            ->where('webhook_enabled', true)
+            ->where('is_active', true);
     }
 }

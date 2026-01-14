@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo, useRef } from "react";
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
     OUTPUT_NODE_TYPES,
     getNodeTypeLabel,
     getTypeStyleClass,
     getChipStyleClass,
 } from "../../constants/nodeTypes";
+
+// HTTP methods that support request body
+const METHODS_WITH_BODY = ["POST", "PUT", "PATCH"];
 
 // Key-Value Builder Modal Component for Body and Headers
 const KeyValueBuilderModal = ({ value, onChange, title = "Edit" }) => {
@@ -486,6 +489,33 @@ const DynamicField = ({
     );
 };
 
+// Test response display component
+const TestResponseDisplay = ({ testResponse, availablePathsCount }) => {
+    const isSuccess = testResponse.status >= 200 && testResponse.status < 300;
+    const statusClassName = isSuccess
+        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400";
+
+    return (
+        <div className="mb-3 space-y-2">
+            <div className="flex items-center gap-2">
+                <span className={`px-2 py-0.5 text-xs font-medium rounded ${statusClassName}`}>
+                    Status: {testResponse.status}
+                </span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                    {availablePathsCount} fields found
+                </span>
+            </div>
+            <div className="text-xs">
+                <div className="text-gray-600 dark:text-gray-400 mb-1 font-medium">Response:</div>
+                <pre className="p-3 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-auto max-h-64 font-mono border border-gray-200 dark:border-gray-700">
+                    {JSON.stringify(testResponse.data, null, 2)}
+                </pre>
+            </div>
+        </div>
+    );
+};
+
 // Helper to extract all paths from a JSON object
 const extractPaths = (obj, prefix = "", maxDepth = 5) => {
     if (maxDepth <= 0) return [];
@@ -627,26 +657,26 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
     );
     const [showPathDropdown, setShowPathDropdown] = useState(null); // 'output' | index for mapping
 
-    const toggleDynamic = (fieldName, isDynamic) => {
+    const toggleDynamic = useCallback((fieldName, isDynamic) => {
         setDynamicFields((prev) => ({ ...prev, [fieldName]: isDynamic }));
-    };
+    }, []);
 
-    const addResponseMapping = () => {
+    const addResponseMapping = useCallback(() => {
         setResponseMapping((prev) => [...prev, { path: "", alias: "" }]);
-    };
+    }, []);
 
-    const updateResponseMapping = (index, field, value) => {
+    const updateResponseMapping = useCallback((index, field, value) => {
         setResponseMapping((prev) =>
             prev.map((item, i) => (i === index ? { ...item, [field]: value } : item)),
         );
-    };
+    }, []);
 
-    const removeResponseMapping = (index) => {
+    const removeResponseMapping = useCallback((index) => {
         setResponseMapping((prev) => prev.filter((_, i) => i !== index));
-    };
+    }, []);
 
     // Test the API request
-    const testRequest = async () => {
+    const testRequest = useCallback(async () => {
         if (!url || dynamicFields.url) {
             setTestError("URL is required and cannot be dynamic for testing");
             return;
@@ -679,14 +709,14 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
             }
 
             const fetchOptions = {
-                method: method,
+                method,
                 headers: {
                     "Content-Type": "application/json; charset=UTF-8",
                     ...parsedHeaders,
                 },
             };
 
-            if (["POST", "PUT", "PATCH"].includes(method)) {
+            if (METHODS_WITH_BODY.includes(method)) {
                 fetchOptions.body = JSON.stringify(parsedBody);
             }
 
@@ -702,23 +732,23 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
 
             console.log("[API Test] Response received:", {
                 status: response.status,
-                data: data,
+                data,
             });
 
             setTestResponse({
                 status: response.status,
-                data: data,
+                data,
             });
 
             // Extract available paths from the response
             const paths = extractPaths(data);
-            setAvailablePaths(Array.isArray(paths) ? paths : []);
+            setAvailablePaths(paths);
         } catch (error) {
             setTestError(error.message);
         } finally {
             setTestLoading(false);
         }
-    };
+    }, [url, dynamicFields.url, headers, requestBody, authToken, method]);
 
     // Track if we're initializing from config (only on mount or when nodeId changes)
     const isInitializedRef = useRef(false);
@@ -748,12 +778,15 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
         }
     }, [config, nodeId]);
 
+    // Track previous config to prevent unnecessary onChange calls
+    const prevConfigRef = useRef(null);
+
     useEffect(() => {
         try {
             const parsedBody = requestBody ? JSON.parse(requestBody) : {};
             const parsedHeaders = headers ? JSON.parse(headers) : {};
 
-            onChange({
+            const newConfig = {
                 method,
                 url,
                 requestBody: parsedBody,
@@ -762,10 +795,18 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
                 dynamicFields,
                 responseMapping: responseMapping.filter((m) => m.path),
                 outputField,
-                // Store discovered paths so connected nodes can use them
                 discoveredPaths: availablePaths,
-            });
-        } catch (e) {
+            };
+
+            // Only call onChange if config actually changed
+            const prevConfig = prevConfigRef.current;
+            if (prevConfig && JSON.stringify(prevConfig) === JSON.stringify(newConfig)) {
+                return;
+            }
+
+            prevConfigRef.current = newConfig;
+            onChange(newConfig);
+        } catch {
             // Invalid JSON, don't update
         }
     }, [
@@ -778,39 +819,43 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
         responseMapping,
         outputField,
         availablePaths,
+        onChange,
     ]);
 
     // Render path dropdown
-    const renderPathDropdown = (onSelect, currentValue) => {
-        if (availablePaths.length === 0) return null;
+    const renderPathDropdown = useCallback(
+        (onSelect, currentValue) => {
+            if (availablePaths.length === 0) return null;
 
-        return (
-            <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                {availablePaths.map((item, idx) => (
-                    <button
-                        key={idx}
-                        type="button"
-                        onClick={() => {
-                            onSelect(item.path);
-                            setShowPathDropdown(null);
-                        }}
-                        className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center ${
-                            currentValue === item.path ? "bg-blue-50 dark:bg-blue-900/30" : ""
-                        }`}
-                    >
-                        <span className="font-mono text-gray-800 dark:text-gray-200">
-                            {item.path}
-                        </span>
-                        <span
-                            className={`text-xs px-1.5 py-0.5 rounded ${getTypeStyleClass(item.type)}`}
+            return (
+                <div className="absolute z-10 mt-1 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {availablePaths.map((item, idx) => (
+                        <button
+                            key={idx}
+                            type="button"
+                            onClick={() => {
+                                onSelect(item.path);
+                                setShowPathDropdown(null);
+                            }}
+                            className={`w-full text-left px-3 py-2 text-xs hover:bg-gray-100 dark:hover:bg-gray-700 flex justify-between items-center ${
+                                currentValue === item.path ? "bg-blue-50 dark:bg-blue-900/30" : ""
+                            }`}
                         >
-                            {item.type}
-                        </span>
-                    </button>
-                ))}
-            </div>
-        );
-    };
+                            <span className="font-mono text-gray-800 dark:text-gray-200">
+                                {item.path}
+                            </span>
+                            <span
+                                className={`text-xs px-1.5 py-0.5 rounded ${getTypeStyleClass(item.type)}`}
+                            >
+                                {item.type}
+                            </span>
+                        </button>
+                    ))}
+                </div>
+            );
+        },
+        [availablePaths],
+    );
 
     return (
         <div className="space-y-3">
@@ -865,7 +910,7 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
                 </p>
             )}
 
-            {(method === "POST" || method === "PUT" || method === "PATCH") && (
+            {METHODS_WITH_BODY.includes(method) && (
                 <div className="space-y-1">
                     <div className="flex items-center justify-between">
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -1025,30 +1070,10 @@ const ApiCallConfig = ({ config, onChange, nodeId, nodes = [], edges = [] }) => 
                 )}
 
                 {testResponse && (
-                    <div className="mb-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                            <span
-                                className={`px-2 py-0.5 text-xs font-medium rounded ${
-                                    testResponse.status >= 200 && testResponse.status < 300
-                                        ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                        : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                                }`}
-                            >
-                                Status: {testResponse.status}
-                            </span>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">
-                                {availablePaths.length} fields found
-                            </span>
-                        </div>
-                        <div className="text-xs">
-                            <div className="text-gray-600 dark:text-gray-400 mb-1 font-medium">
-                                Response:
-                            </div>
-                            <pre className="p-3 bg-gray-100 dark:bg-gray-900 rounded text-xs overflow-auto max-h-64 font-mono border border-gray-200 dark:border-gray-700">
-                                {JSON.stringify(testResponse.data, null, 2)}
-                            </pre>
-                        </div>
-                    </div>
+                    <TestResponseDisplay
+                        testResponse={testResponse}
+                        availablePathsCount={availablePaths.length}
+                    />
                 )}
             </div>
 

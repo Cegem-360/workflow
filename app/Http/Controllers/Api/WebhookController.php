@@ -12,10 +12,7 @@ class WebhookController extends Controller
 {
     public function trigger(Request $request, string $token): JsonResponse
     {
-        $workflow = Workflow::where('webhook_token', $token)
-            ->where('webhook_enabled', true)
-            ->where('is_active', true)
-            ->first();
+        $workflow = Workflow::activeWebhook($token)->first();
 
         if (! $workflow) {
             return response()->json([
