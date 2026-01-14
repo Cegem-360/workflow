@@ -18,11 +18,13 @@ const AdminApp = () => {
         teamId,
         teams,
         scheduleOptions,
+        webhookEnabled,
         setWorkflowName,
         setWorkflowDescription,
         setIsScheduled,
         setScheduleCron,
         setTeamId,
+        setWebhookEnabled,
         handleSaveWorkflow,
         handleEditWorkflow,
         handleDeleteWorkflow,
@@ -61,6 +63,8 @@ const AdminApp = () => {
                     onSave={handleSaveWorkflow}
                     onClose={handleCloseEditor}
                     loading={loading}
+                    webhookEnabled={webhookEnabled}
+                    onWebhookEnabledChange={setWebhookEnabled}
                 />
             ) : (
                 <WorkflowList

@@ -33,6 +33,15 @@ const getValueOrDefault = (inputVal, configVal) => {
     return configVal;
 };
 
+// Helper to safely extract a string ID from various formats (string, array, object with id)
+const extractStringId = (value) => {
+    if (!value) return undefined;
+    if (typeof value === "string") return value;
+    if (Array.isArray(value)) return value[0]?.id || value[0] || undefined;
+    if (typeof value === "object" && value.id) return value.id;
+    return undefined;
+};
+
 // Time unit multipliers in milliseconds
 const TIME_MULTIPLIERS = {
     minutes: 60 * 1000,
@@ -629,7 +638,14 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                     const emailData = await emailResponse.json();
 
                     if (!emailResponse.ok || !emailData.success) {
-                        throw new Error(emailData.error || "Failed to send email");
+                        const errorMessage =
+                            emailData.message || emailData.error || "Failed to send email";
+                        console.error(
+                            "[Runner] Email error:",
+                            errorMessage,
+                            emailData.errors || {},
+                        );
+                        throw new Error(errorMessage);
                     }
                     return { success: true, output: emailData };
                 }
@@ -664,7 +680,9 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                         config.endDateTime,
                     );
                     const attendees = getValueOrDefault(inputValues.attendees, config.attendees);
-                    const eventId = getValueOrDefault(eventIdFromInput, config.eventId);
+                    const eventId = extractStringId(
+                        getValueOrDefault(eventIdFromInput, config.eventId),
+                    );
 
                     // Apply dynamic field extraction from connected action node
                     if (inputData && typeof inputData === "object") {
@@ -725,9 +743,17 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                                 calendarData.error,
                             );
                         }
-                        throw new Error(
-                            calendarData.error || "Failed to execute Google Calendar action",
+                        // Handle Laravel validation errors (422) and custom errors
+                        const errorMessage =
+                            calendarData.message ||
+                            calendarData.error ||
+                            "Failed to execute Google Calendar action";
+                        console.error(
+                            "[Runner] Google Calendar error:",
+                            errorMessage,
+                            calendarData.errors || {},
                         );
+                        throw new Error(errorMessage);
                     }
 
                     if (calendarData.deleted) {
@@ -808,11 +834,16 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                         if (docsData.errorCode === "DOCUMENT_NOT_FOUND") {
                             console.warn("[Runner] Document not found:", docsData.error);
                         }
-                        throw new Error(
+                        const errorMessage =
                             docsData.message ||
-                                docsData.error ||
-                                "Failed to execute Google Docs action",
+                            docsData.error ||
+                            "Failed to execute Google Docs action";
+                        console.error(
+                            "[Runner] Google Docs error:",
+                            errorMessage,
+                            docsData.errors || {},
                         );
+                        throw new Error(errorMessage);
                     }
                     return { success: true, output: docsData.data };
                 }
@@ -966,7 +997,9 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                         config.endDateTime,
                     );
                     const attendees = getValueOrDefault(inputValues.attendees, config.attendees);
-                    const eventId = getValueOrDefault(eventIdFromInput, config.eventId);
+                    const eventId = extractStringId(
+                        getValueOrDefault(eventIdFromInput, config.eventId),
+                    );
 
                     // Apply dynamic field extraction from connected action node
                     if (inputData && typeof inputData === "object") {
@@ -1027,9 +1060,17 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                                 calendarData.error,
                             );
                         }
-                        throw new Error(
-                            calendarData.error || "Failed to execute Google Calendar action",
+                        // Handle Laravel validation errors (422) and custom errors
+                        const errorMessage =
+                            calendarData.message ||
+                            calendarData.error ||
+                            "Failed to execute Google Calendar action";
+                        console.error(
+                            "[Runner] Google Calendar error:",
+                            errorMessage,
+                            calendarData.errors || {},
                         );
+                        throw new Error(errorMessage);
                     }
 
                     if (calendarData.deleted) {
@@ -1110,11 +1151,16 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                         if (docsData.errorCode === "DOCUMENT_NOT_FOUND") {
                             console.warn("[Runner] Document not found:", docsData.error);
                         }
-                        throw new Error(
+                        const errorMessage =
                             docsData.message ||
-                                docsData.error ||
-                                "Failed to execute Google Docs action",
+                            docsData.error ||
+                            "Failed to execute Google Docs action";
+                        console.error(
+                            "[Runner] Google Docs error:",
+                            errorMessage,
+                            docsData.errors || {},
                         );
+                        throw new Error(errorMessage);
                     }
                     return { success: true, output: docsData.data };
                 }
@@ -1149,6 +1195,68 @@ export const useWorkflowRunner = (nodes, edges, setNodes, setEdges, teamId = nul
                     applyResponseMapping(data, responseMapping);
 
                     return { success: true, output: data };
+                }
+
+                case "emailAction": {
+                    if (!config.template) {
+                        throw new Error("Email Action requires a template");
+                    }
+                    if (!config.recipients || config.recipients.length === 0) {
+                        throw new Error("Email Action requires at least one recipient");
+                    }
+
+                    const dynamicFields = config.dynamicFields || {};
+                    const dynamicFieldPaths = config.dynamicFieldPaths || {};
+
+                    // Resolve field values from inputs or config
+                    let subject = getValueOrDefault(inputValues.subject, config.subject);
+                    let customData = { ...(config.customData || {}) };
+
+                    // Apply dynamic field extraction from connected action node
+                    if (inputValues.input && typeof inputValues.input === "object") {
+                        if (dynamicFields.subject) {
+                            subject =
+                                extractDynamicFieldWithSource(
+                                    inputValues,
+                                    dynamicFieldPaths,
+                                    "subject",
+                                    ["subject", "title", "name"],
+                                ) ?? subject;
+                        }
+                        // Merge input data into customData for template usage
+                        if (inputValues.input._mapped) {
+                            customData = { ...customData, ...inputValues.input._mapped };
+                        }
+                        customData.input = inputValues.input;
+                    }
+
+                    const emailResponse = await fetch("/api/workflows/actions/email", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            Accept: "application/json",
+                        },
+                        body: JSON.stringify({
+                            template: config.template,
+                            recipients: config.recipients,
+                            subject,
+                            customData,
+                        }),
+                    });
+
+                    const emailData = await emailResponse.json();
+
+                    if (!emailResponse.ok || !emailData.success) {
+                        const errorMessage =
+                            emailData.message || emailData.error || "Failed to send email";
+                        console.error(
+                            "[Runner] Email error:",
+                            errorMessage,
+                            emailData.errors || {},
+                        );
+                        throw new Error(errorMessage);
+                    }
+                    return { success: true, output: emailData };
                 }
 
                 default:

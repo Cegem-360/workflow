@@ -255,12 +255,25 @@ const ZoomControls = ({ onSave, onReset, isSaving }) => {
     );
 };
 
-const WorkflowEditor = ({ initialNodes = [], initialEdges = [], onSave, teamId }) => {
+const WorkflowEditor = ({
+    initialNodes = [],
+    initialEdges = [],
+    onSave,
+    teamId,
+    webhookEnabled = false,
+    webhookToken = null,
+}) => {
     const reactFlowWrapper = useRef(null);
     const edgeTypes = useMemo(() => ({ floating: FloatingEdge }), []);
     const [isSaving, setIsSaving] = useState(false);
     const [contextMenu, setContextMenu] = useState(null);
     const { screenToFlowPosition } = useReactFlow();
+
+    // Generate webhook URL from token
+    const webhookUrl = useMemo(() => {
+        if (!webhookToken) return null;
+        return `${window.location.origin}/api/webhooks/${webhookToken}`;
+    }, [webhookToken]);
 
     const {
         nodes,
@@ -644,6 +657,8 @@ const WorkflowEditor = ({ initialNodes = [], initialEdges = [], onSave, teamId }
                 nodes={nodes}
                 edges={edges}
                 onUpdateNodeInputs={handleUpdateInputs}
+                webhookUrl={webhookUrl}
+                webhookEnabled={webhookEnabled}
             />
         </div>
     );

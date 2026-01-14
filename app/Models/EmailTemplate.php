@@ -50,11 +50,17 @@ class EmailTemplate extends Model
         $bodyHtml = $this->body_html;
         $bodyText = $this->body_text ?? strip_tags($this->body_html);
 
-        foreach ($data as $key => $value) {
-            $placeholder = '{{'.$key.'}}';
-            $subject = str_replace($placeholder, $value, $subject);
-            $bodyHtml = str_replace($placeholder, $value, $bodyHtml);
-            $bodyText = str_replace($placeholder, $value, $bodyText);
+        // Flatten nested arrays with dot notation
+        $flatData = $this->flattenArray($data);
+
+        foreach ($flatData as $key => $value) {
+            // Only replace with string values
+            if (is_string($value) || is_numeric($value)) {
+                $placeholder = '{{'.$key.'}}';
+                $subject = str_replace($placeholder, (string) $value, $subject);
+                $bodyHtml = str_replace($placeholder, (string) $value, $bodyHtml);
+                $bodyText = str_replace($placeholder, (string) $value, $bodyText);
+            }
         }
 
         return [
@@ -62,5 +68,25 @@ class EmailTemplate extends Model
             'body_html' => $bodyHtml,
             'body_text' => $bodyText,
         ];
+    }
+
+    /**
+     * Flatten a nested array with dot notation keys.
+     */
+    private function flattenArray(array $array, string $prefix = ''): array
+    {
+        $result = [];
+
+        foreach ($array as $key => $value) {
+            $newKey = $prefix === '' ? $key : $prefix.'.'.$key;
+
+            if (is_array($value)) {
+                $result = array_merge($result, $this->flattenArray($value, $newKey));
+            } else {
+                $result[$newKey] = $value;
+            }
+        }
+
+        return $result;
     }
 }

@@ -38,7 +38,7 @@ const WebhookTriggerConfig = ({
             setTestResult({
                 success: response.ok,
                 status: response.status,
-                data: data,
+                data,
             });
         } catch (error) {
             setTestResult({
@@ -56,13 +56,6 @@ const WebhookTriggerConfig = ({
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         }
-    };
-
-    const handleOutputPathChange = (e) => {
-        onChange({
-            ...config,
-            outputPath: e.target.value,
-        });
     };
 
     const renderWebhookStatus = () => {
@@ -136,7 +129,6 @@ const WebhookTriggerConfig = ({
 
             {renderWebhookStatus()}
 
-            {/* Test Section */}
             {webhookEnabled && webhookUrl && (
                 <div className="border border-gray-200 dark:border-gray-700 rounded overflow-hidden">
                     <button
@@ -153,7 +145,7 @@ const WebhookTriggerConfig = ({
                             >
                                 <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
                             </svg>
-                            Webhook tesztelése
+                            Test Webhook
                         </span>
                         <svg
                             className={`w-4 h-4 text-gray-500 transition-transform ${showTest ? "rotate-180" : ""}`}
@@ -197,7 +189,7 @@ const WebhookTriggerConfig = ({
                                         >
                                             <path d="M21 12a9 9 0 1 1-6.219-8.56" />
                                         </svg>
-                                        Küldés...
+                                        Sending...
                                     </>
                                 ) : (
                                     <>
@@ -211,7 +203,7 @@ const WebhookTriggerConfig = ({
                                             <line x1="22" y1="2" x2="11" y2="13" />
                                             <polygon points="22 2 15 22 11 13 2 9 22 2" />
                                         </svg>
-                                        Test küldése
+                                        Send Test
                                     </>
                                 )}
                             </button>
@@ -237,7 +229,7 @@ const WebhookTriggerConfig = ({
                                                     <path d="M20 6L9 17l-5-5" />
                                                 </svg>
                                                 <span className="font-medium text-green-800 dark:text-green-300">
-                                                    Sikeres! (HTTP {testResult.status})
+                                                    Success! (HTTP {testResult.status})
                                                 </span>
                                             </>
                                         ) : (
@@ -254,7 +246,7 @@ const WebhookTriggerConfig = ({
                                                     <line x1="9" y1="9" x2="15" y2="15" />
                                                 </svg>
                                                 <span className="font-medium text-red-800 dark:text-red-300">
-                                                    Hiba
+                                                    Error
                                                     {testResult.status
                                                         ? ` (HTTP ${testResult.status})`
                                                         : ""}
@@ -280,7 +272,7 @@ const WebhookTriggerConfig = ({
                 <input
                     type="text"
                     value={config.outputPath || ""}
-                    onChange={handleOutputPathChange}
+                    onChange={(e) => onChange({ ...config, outputPath: e.target.value })}
                     placeholder="e.g., data.user or leave empty for full payload"
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />

@@ -13,6 +13,7 @@ export const useWorkflowAdmin = (toast = null) => {
     const [teamId, setTeamId] = useState(null);
     const [teams, setTeams] = useState([]);
     const [scheduleOptions, setScheduleOptions] = useState([]);
+    const [webhookEnabled, setWebhookEnabled] = useState(false);
 
     // Helper to show notifications
     const notify = useCallback(
@@ -88,6 +89,7 @@ export const useWorkflowAdmin = (toast = null) => {
                 setIsScheduled(workflow.is_scheduled || false);
                 setScheduleCron(workflow.schedule_cron || "*/5 * * * *");
                 setTeamId(workflow.team_id || null);
+                setWebhookEnabled(workflow.webhook_enabled || false);
                 setIsCreating(true);
             } catch (error) {
                 console.error("Error loading workflow:", error);
@@ -145,6 +147,7 @@ export const useWorkflowAdmin = (toast = null) => {
                     is_active: true,
                     is_scheduled: isScheduled,
                     schedule_cron: isScheduled ? scheduleCron : null,
+                    webhook_enabled: webhookEnabled,
                 };
 
                 if (selectedWorkflow) {
@@ -162,6 +165,7 @@ export const useWorkflowAdmin = (toast = null) => {
                     setWorkflowDescription(response.data.description || "");
                     setIsScheduled(response.data.is_scheduled || false);
                     setScheduleCron(response.data.schedule_cron || "*/5 * * * *");
+                    setWebhookEnabled(response.data.webhook_enabled || false);
                 }
 
                 fetchWorkflows();
@@ -181,9 +185,11 @@ export const useWorkflowAdmin = (toast = null) => {
             workflowDescription,
             isScheduled,
             scheduleCron,
+            webhookEnabled,
             selectedWorkflow,
             fetchWorkflows,
             notify,
+            teamId,
         ],
     );
 
@@ -194,6 +200,7 @@ export const useWorkflowAdmin = (toast = null) => {
         setIsScheduled(workflow.is_scheduled || false);
         setScheduleCron(workflow.schedule_cron || "*/5 * * * *");
         setTeamId(workflow.team_id || null);
+        setWebhookEnabled(workflow.webhook_enabled || false);
         setIsCreating(true);
     }, []);
 
@@ -223,6 +230,7 @@ export const useWorkflowAdmin = (toast = null) => {
         setWorkflowDescription("");
         setIsScheduled(false);
         setScheduleCron("*/5 * * * *");
+        setWebhookEnabled(false);
     }, []);
 
     const handleCloseEditor = useCallback(() => {
@@ -232,6 +240,7 @@ export const useWorkflowAdmin = (toast = null) => {
         setWorkflowDescription("");
         setIsScheduled(false);
         setScheduleCron("*/5 * * * *");
+        setWebhookEnabled(false);
     }, []);
 
     return {
@@ -246,11 +255,13 @@ export const useWorkflowAdmin = (toast = null) => {
         teamId,
         teams,
         scheduleOptions,
+        webhookEnabled,
         setWorkflowName,
         setWorkflowDescription,
         setIsScheduled,
         setScheduleCron,
         setTeamId,
+        setWebhookEnabled,
         handleSaveWorkflow,
         handleEditWorkflow,
         handleDeleteWorkflow,
