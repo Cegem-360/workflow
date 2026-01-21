@@ -14,6 +14,7 @@
         <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700|poppins:400,500,600,700" rel="stylesheet" />
 
         <!-- Scripts -->
+        @viteReactRefresh
         @vite(['resources/css/app.css', 'resources/js/app.jsx'])
 
         @filamentStyles

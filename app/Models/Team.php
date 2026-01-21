@@ -54,6 +54,11 @@ class Team extends Model
         return $this->hasOne(TeamGoogleCredential::class);
     }
 
+    public function settings(): HasOne
+    {
+        return $this->hasOne(Settings::class);
+    }
+
     public function hasGoogleCalendarConnected(): bool
     {
         return $this->googleCredential !== null;

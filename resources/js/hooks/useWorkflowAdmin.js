@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import axios from "axios";
 
-export const useWorkflowAdmin = (toast = null) => {
+export const useWorkflowAdmin = (toast = null, initialWorkflowId = null) => {
     const [workflows, setWorkflows] = useState([]);
     const [selectedWorkflow, setSelectedWorkflow] = useState(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -109,13 +109,13 @@ export const useWorkflowAdmin = (toast = null) => {
         fetchWorkflows();
         fetchTeams();
 
-        // Check URL for workflow ID
-        const urlParams = new URLSearchParams(window.location.search);
-        const workflowId = urlParams.get("workflow");
+        // Check for workflow ID from prop or URL query param
+        const workflowId =
+            initialWorkflowId || new URLSearchParams(window.location.search).get("workflow");
         if (workflowId) {
             loadWorkflowForEdit(workflowId);
         }
-    }, [fetchWorkflows, fetchTeams, loadWorkflowForEdit]);
+    }, [fetchWorkflows, fetchTeams, loadWorkflowForEdit, initialWorkflowId]);
 
     // Fetch schedule options when team changes
     useEffect(() => {

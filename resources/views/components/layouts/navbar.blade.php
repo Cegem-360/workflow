@@ -44,12 +44,12 @@
 
                 @guest
                     {{-- Log in --}}
-                    <a href="/admin" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
+                    <a href="/admin/login" class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
                         Bejelentkezés
                     </a>
 
                     {{-- Get Started (filled) --}}
-                    <a href="/admin"
+                    <a href="/admin/register"
                         class="inline-flex items-center gap-1 px-5 py-2 text-sm font-medium text-white bg-violet-600 rounded-full hover:bg-violet-700 transition-colors">
                         Ingyenes próba
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -61,7 +61,7 @@
 
                 @auth
                     {{-- Dashboard link --}}
-                    <a href="/admin"
+                    <a href="{{ route('dashboard') }}"
                         class="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors">
                         Dashboard
                     </a>
@@ -83,8 +83,8 @@
                             x-transition:leave="transition ease-in duration-75"
                             x-transition:leave-start="opacity-100 scale-100" x-transition:leave-end="opacity-0 scale-95"
                             class="absolute right-0 top-full mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
-                            <a href="/admin"
-                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profilom</a>
+                            <a href="{{ route('dashboard') }}"
+                                class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Dashboard</a>
                             <hr class="my-1 border-gray-200">
                             <form method="POST" action="{{ route('filament.admin.auth.logout') }}">
                                 @csrf
@@ -133,17 +133,15 @@
             <hr class="border-gray-200">
 
             @guest
-                <a href="/admin" class="block py-2 text-sm font-medium text-gray-700">Bejelentkezés</a>
-                <a href="/admin"
+                <a href="/admin/login" class="block py-2 text-sm font-medium text-gray-700">Bejelentkezés</a>
+                <a href="/admin/register"
                     class="block w-full text-center py-2.5 text-sm font-medium text-white bg-violet-600 rounded-full">
                     Ingyenes próba
                 </a>
             @endguest
 
             @auth
-                <a href="/admin" class="block py-2 text-sm font-medium text-gray-700">Dashboard</a>
-                <a href="/admin"
-                    class="block py-2 text-sm font-medium text-gray-700">Profilom</a>
+                <a href="{{ route('dashboard') }}" class="block py-2 text-sm font-medium text-gray-700">Dashboard</a>
                 <form method="POST" action="{{ route('filament.admin.auth.logout') }}">
                     @csrf
                     <button type="submit" class="block w-full text-left py-2 text-sm font-medium text-red-600">

@@ -77,6 +77,7 @@ const WorkflowEditorView = ({
     webhookEnabled,
     onWebhookEnabledChange,
     onGenerateToken,
+    dashboardMode = false,
 }) => {
     const initialNodes =
         selectedWorkflow?.nodes?.map((node) => {
@@ -128,6 +129,32 @@ const WorkflowEditorView = ({
             };
         }) || [];
 
+    // Dashboard mode: show only the editor without form and close button
+    if (dashboardMode) {
+        return (
+            <div className="h-full flex flex-col">
+                <ReactFlowProvider>
+                    <WorkflowEditor
+                        initialNodes={initialNodes}
+                        initialEdges={initialEdges}
+                        onSave={onSave}
+                        teamId={teamId}
+                        webhookEnabled={webhookEnabled}
+                        webhookToken={selectedWorkflow?.webhook_token || null}
+                        isScheduled={isScheduled}
+                        scheduleCron={scheduleCron}
+                        scheduleOptions={scheduleOptions}
+                        onScheduledChange={onScheduledChange}
+                        onScheduleCronChange={onScheduleCronChange}
+                        onWebhookEnabledChange={onWebhookEnabledChange}
+                        onGenerateToken={onGenerateToken}
+                    />
+                </ReactFlowProvider>
+            </div>
+        );
+    }
+
+    // Standalone mode: show full editor with form and controls
     return (
         <div className="space-y-4">
             <WorkflowForm

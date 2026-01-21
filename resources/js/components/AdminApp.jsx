@@ -4,7 +4,7 @@ import WorkflowEditorView from "./admin/WorkflowEditorView";
 import { useWorkflowAdmin } from "@/hooks/useWorkflowAdmin";
 import { useToast } from "@/components/ui/toast";
 
-const AdminApp = () => {
+const AdminApp = ({ workflowId = null }) => {
     const toast = useToast();
     const {
         workflows,
@@ -31,8 +31,50 @@ const AdminApp = () => {
         handleNewWorkflow,
         handleCloseEditor,
         handleGenerateToken,
-    } = useWorkflowAdmin(toast);
+    } = useWorkflowAdmin(toast, workflowId);
 
+    // Dashboard mode: show only the editor without admin chrome
+    const isDashboardMode = !!workflowId;
+
+    if (isDashboardMode) {
+        return (
+            <div className="h-full">
+                {isCreating ? (
+                    <WorkflowEditorView
+                        selectedWorkflow={selectedWorkflow}
+                        workflowName={workflowName}
+                        workflowDescription={workflowDescription}
+                        isScheduled={isScheduled}
+                        scheduleCron={scheduleCron}
+                        teamId={teamId}
+                        teams={teams}
+                        scheduleOptions={scheduleOptions}
+                        onNameChange={setWorkflowName}
+                        onDescriptionChange={setWorkflowDescription}
+                        onScheduledChange={setIsScheduled}
+                        onScheduleCronChange={setScheduleCron}
+                        onTeamChange={setTeamId}
+                        onSave={handleSaveWorkflow}
+                        onClose={handleCloseEditor}
+                        loading={loading}
+                        webhookEnabled={webhookEnabled}
+                        onWebhookEnabledChange={setWebhookEnabled}
+                        onGenerateToken={handleGenerateToken}
+                        dashboardMode={true}
+                    />
+                ) : (
+                    <div className="flex items-center justify-center h-full">
+                        <div className="text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-violet-600 mx-auto mb-4"></div>
+                            <p className="text-gray-500 dark:text-gray-400">Loading workflow...</p>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // Standalone admin mode: show full admin interface
     return (
         <div className="container mx-auto p-6">
             <div className="flex justify-between items-center mb-6">
@@ -67,6 +109,7 @@ const AdminApp = () => {
                     webhookEnabled={webhookEnabled}
                     onWebhookEnabledChange={setWebhookEnabled}
                     onGenerateToken={handleGenerateToken}
+                    dashboardMode={false}
                 />
             ) : (
                 <WorkflowList

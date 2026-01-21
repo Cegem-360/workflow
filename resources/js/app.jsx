@@ -7,10 +7,11 @@ import { ToastProvider } from "./components/ui/toast";
 
 const adminContainer = document.getElementById("admin-app");
 if (adminContainer) {
+    const workflowId = adminContainer.dataset.workflowId || null;
     const root = createRoot(adminContainer);
     root.render(
         <ToastProvider>
-            <AdminApp />
+            <AdminApp workflowId={workflowId} />
         </ToastProvider>,
     );
 }
