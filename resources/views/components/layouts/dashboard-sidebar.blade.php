@@ -4,7 +4,8 @@
     $tenantSlug = $currentTeam?->slug;
 @endphp
 <aside
-    class="fixed inset-y-0 left-0 z-50 w-60 bg-[#292F4C] text-white flex flex-col"
+    class="fixed inset-y-0 left-0 z-50 w-60 bg-[#292F4C] text-white flex flex-col transform transition-transform duration-300 ease-in-out lg:translate-x-0"
+    :class="{ '-translate-x-full': !mobileMenuOpen, 'translate-x-0': mobileMenuOpen }"
     x-show="sidebarOpen || mobileMenuOpen"
     x-cloak
 >
