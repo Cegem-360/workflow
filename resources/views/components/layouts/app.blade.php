@@ -6,22 +6,30 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
-        <title>{{ $title ?? config('app.name', 'Laravel') }}</title>
+        <title>{{ $title ?? 'Munkafolyamat automatizálás | Cégem360 - Szabadítsa fel csapata idejét' }}</title>
+        <meta name="description" content="Automatizálja ismétlődő feladatait kód nélkül. Vizuális workflow-builder, trigger-alapú szabályok, automatikus értesítések. 14 napos ingyenes próba.">
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=inter:400,500,600,700" rel="stylesheet" />
-        @viteReactRefresh
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700|poppins:400,500,600,700" rel="stylesheet" />
+
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.jsx'])
 
+        @filamentStyles
         @livewireStyles
+
+        <style>
+            [x-cloak] { display: none !important; }
+
+            .font-heading {
+                font-family: 'Poppins', sans-serif;
+            }
+        </style>
     </head>
 
-    <body class="antialiased bg-gray-50 dark:bg-gray-900">
+    <body class="antialiased bg-white">
         <div class="min-h-screen">
-            <x-layouts.nav />
-
             <!-- Page Content -->
             <main>
                 {{ $slot }}
@@ -29,6 +37,7 @@
         </div>
 
         @livewireScripts
+        @filamentScripts
     </body>
 
 </html>
