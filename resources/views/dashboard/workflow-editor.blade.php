@@ -34,30 +34,23 @@
 
             {{-- Main content area --}}
             <div class="flex-1 flex flex-col min-w-0" :class="{ 'lg:ml-60': sidebarOpen }">
-                {{-- Compact header for editor --}}
-                <header class="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4">
-                    <div class="flex items-center gap-4">
-                        {{-- Sidebar toggle --}}
-                        <button
-                            @click="sidebarOpen = !sidebarOpen"
-                            class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
-                        >
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
-                            </svg>
-                        </button>
+                {{-- Header - matching dashboard design --}}
+                <x-layouts.dashboard-header />
 
+                {{-- Workflow context bar --}}
+                <div class="h-12 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between px-4 lg:px-6">
+                    <div class="flex items-center gap-4">
                         {{-- Back button --}}
                         <a href="{{ route('dashboard.workflows') }}"
-                            class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                            class="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
                             title="{{ __('Back to Workflows') }}">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
                             </svg>
                         </a>
 
-                        {{-- Workflow name --}}
-                        <div class="flex items-center gap-2">
+                        {{-- Workflow info --}}
+                        <div class="flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
                                 <svg class="w-4 h-4 text-violet-600 dark:text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"/>
@@ -76,25 +69,26 @@
                                             {{ $workflow->schedule_description }}
                                         </span>
                                     @endif
+                                    @if($workflow->webhook_enabled)
+                                        <span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                            {{ __('Webhook') }}
+                                        </span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-2">
-                        {{-- Workflow info --}}
+                    <div class="flex items-center gap-3">
+                        {{-- Node count --}}
                         <span class="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
                             {{ $workflow->nodes->count() }} {{ __('nodes') }}
                         </span>
 
-                        {{-- Help --}}
-                        <button class="p-2 rounded-lg text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                            </svg>
-                        </button>
+                        {{-- Auto-save indicator placeholder --}}
+                        <div id="autosave-indicator" class="text-xs text-gray-400"></div>
                     </div>
-                </header>
+                </div>
 
                 {{-- Editor content - full height --}}
                 <main class="flex-1 overflow-hidden">
