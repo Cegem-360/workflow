@@ -91,7 +91,7 @@
                 </div>
 
                 {{-- Editor content - full height --}}
-                <main class="flex-1 overflow-hidden">
+                <main class="flex-1 overflow-hidden pt-8">
                     <div id="admin-app" class="h-full" data-workflow-id="{{ $workflow->id }}"></div>
                 </main>
             </div>
