@@ -11,6 +11,7 @@ use App\Models\Workflow;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Routing\Redirector;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -21,6 +22,12 @@ Route::get('/', function (): View|Factory|RedirectResponse {
 
     return view('home');
 })->name('home');
+
+// Guest routes - redirect to Filament auth pages
+Route::middleware(['guest'])->group(function (): void {
+    Route::get('/login', fn (): Redirector|RedirectResponse => to_route('filament.admin.auth.login'))->name('login');
+    Route::get('/register', fn (): Redirector|RedirectResponse => to_route('filament.admin.auth.register'))->name('register');
+});
 
 Route::get('/workflow-editor', function () {
     return view('admin');

@@ -126,6 +126,22 @@
 ### Files to Create for New Module
 
 ```
+app/
+├── Filament/Pages/Auth/
+│   ├── Login.php               # Custom login page class
+│   └── Register.php            # Custom registration page class
+├── Http/
+│   ├── Middleware/
+│   │   └── SetLocale.php       # Language middleware
+│   └── Responses/
+│       ├── LoginResponse.php   # Redirect to /dashboard after login
+│       └── RegistrationResponse.php # Redirect to /dashboard after registration
+└── Providers/
+    └── AppServiceProvider.php  # Bind custom auth responses
+
+bootstrap/
+└── app.php                     # Register SetLocale middleware
+
 resources/
 ├── css/
 │   └── app.css                 # Copy from existing, update primary colors
@@ -138,16 +154,17 @@ resources/
     │   │   ├── navbar.blade.php
     │   │   └── footer.blade.php
     │   └── language-switcher.blade.php
+    ├── filament/
+    │   ├── layouts/
+    │   │   ├── auth.blade.php  # Centered layout (login)
+    │   │   └── auth-split.blade.php # Split layout (registration)
+    │   └── pages/auth/
+    │       ├── login.blade.php # Login form UI
+    │       └── register.blade.php # Registration form UI
     └── home.blade.php          # Landing page
 
-app/Http/Middleware/
-└── SetLocale.php               # Language middleware
-
-bootstrap/
-└── app.php                     # Register SetLocale middleware
-
 routes/
-└── web.php                     # Add home + language.switch routes
+└── web.php                     # Add home, language.switch, /login, /register routes
 ```
 
 ### Build Commands
@@ -158,3 +175,81 @@ npm run build        # Production build
 npm run dev          # Development with hot reload
 vendor/bin/pint      # Format PHP code
 ```
+
+---
+
+## React Components (Workflow Module Only)
+
+> React is used **only** for the workflow editor (React Flow requires it). All other modules use the TALL stack.
+
+### Scroll Indicator Pattern
+
+```jsx
+const [canScrollDown, setCanScrollDown] = useState(false);
+const navRef = useRef(null);
+
+useEffect(() => {
+    const nav = navRef.current;
+    const checkScroll = () => {
+        const hasOverflow = nav.scrollHeight > nav.clientHeight;
+        const isAtBottom = nav.scrollTop + nav.clientHeight >= nav.scrollHeight - 10;
+        setCanScrollDown(hasOverflow && !isAtBottom);
+    };
+
+    setTimeout(checkScroll, 100); // Wait for content to render
+    nav.addEventListener("scroll", checkScroll);
+    return () => nav.removeEventListener("scroll", checkScroll);
+}, []);
+
+// Gradient indicator
+{canScrollDown && (
+    <div className="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-gray-200 via-gray-200/80 to-transparent pointer-events-none flex items-end justify-center pb-2">
+        <ChevronDown className="w-4 h-4 text-gray-500 animate-bounce" />
+    </div>
+)}
+```
+
+### Drag-and-Drop Node
+
+```jsx
+<div
+    draggable
+    onDragStart={(e) => {
+        e.dataTransfer.setData("application/reactflow", nodeType);
+        e.dataTransfer.effectAllowed = "move";
+    }}
+    className="cursor-grab active:cursor-grabbing"
+>
+    {/* Node content */}
+</div>
+```
+
+### Node Category Colors
+
+```jsx
+const categoryColors = {
+    triggers: "text-violet-500",
+    actions: "text-blue-500",
+    integrations: "text-green-500",
+    logic: "text-amber-500",
+    flow: "text-gray-500",
+};
+```
+
+### React + Alpine.js Coordination
+
+The React editor lives inside an Alpine-controlled layout:
+
+```blade
+<body x-data="{ sidebarOpen: true }">
+    {{-- Alpine controls sidebar visibility --}}
+    <aside x-show="sidebarOpen">...</aside>
+
+    {{-- React fills remaining space --}}
+    <div :class="{ 'lg:ml-60': sidebarOpen }">
+        <div id="admin-app" class="h-full"></div>
+    </div>
+</body>
+```
+
+React doesn't need sidebar state - it automatically fills the available container space.

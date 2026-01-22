@@ -13,9 +13,19 @@
 ```
 project-root/
 ├── app/
-│   └── Http/
-│       └── Middleware/
-│           └── SetLocale.php          # Language switching middleware
+│   ├── Filament/
+│   │   └── Pages/
+│   │       └── Auth/
+│   │           ├── Login.php          # Custom login page
+│   │           └── Register.php       # Custom registration page
+│   ├── Http/
+│   │   ├── Middleware/
+│   │   │   └── SetLocale.php          # Language switching middleware
+│   │   └── Responses/
+│   │       ├── LoginResponse.php      # Redirect to /dashboard after login
+│   │       └── RegistrationResponse.php # Redirect to /dashboard after registration
+│   └── Providers/
+│       └── AppServiceProvider.php     # Bind custom responses
 ├── bootstrap/
 │   └── app.php                        # Middleware registration
 ├── docs/
@@ -32,6 +42,13 @@ project-root/
 │       │   │   ├── navbar.blade.php   # Navigation component
 │       │   │   └── footer.blade.php   # Footer component
 │       │   └── language-switcher.blade.php
+│       ├── filament/
+│       │   ├── layouts/
+│       │   │   ├── auth.blade.php     # Centered auth layout (login)
+│       │   │   └── auth-split.blade.php # Split auth layout (registration)
+│       │   └── pages/auth/
+│       │       ├── login.blade.php    # Login form UI
+│       │       └── register.blade.php # Registration form UI
 │       └── home.blade.php             # Landing page
 ├── routes/
 │   └── web.php                        # Routes including language switch
@@ -132,7 +149,18 @@ Route::get('/language/{locale}', function (string $locale) {
 })->name('language.switch');
 ```
 
-## Step 6: Build Assets
+## Step 6: Setup Authentication Pages
+
+Follow the detailed guide in [Authentication Pages](./08-authentication-pages.md) to create:
+
+1. Custom `LoginResponse` and `RegistrationResponse` classes (redirect to `/dashboard`)
+2. Bind responses in `AppServiceProvider`
+3. Custom `Login.php` and `Register.php` Filament auth pages
+4. Auth layouts (`auth.blade.php` and `auth-split.blade.php`)
+5. Auth views (`login.blade.php` and `register.blade.php`)
+6. Guest routes for `/login` and `/register`
+
+## Step 7: Build Assets
 
 ```bash
 npm install
@@ -146,3 +174,7 @@ npm run build
 - [ ] All sections render with correct colors
 - [ ] Mobile responsive design works
 - [ ] Dark borders are light gray (not dark) - see Common Issues
+- [ ] Login page renders with custom centered layout
+- [ ] Registration page renders with split layout
+- [ ] After login, user redirects to `/dashboard`
+- [ ] After registration, user redirects to `/dashboard`

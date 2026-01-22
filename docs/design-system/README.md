@@ -11,6 +11,9 @@ This documentation provides a complete reference for creating consistent landing
 5. [Landing Page Sections](./05-landing-page-sections.md) - Hero, Features, Pricing, etc.
 6. [CSS Configuration](./06-css-configuration.md) - Tailwind v4 + Filament setup
 7. [Common Issues](./07-common-issues.md) - Troubleshooting guide
+8. [Authentication Pages](./08-authentication-pages.md) - Login, Registration with custom layouts
+9. [User Dashboard](./09-user-dashboard.md) - Livewire dashboard with Filament Schemas
+10. [React Workflow Editor](./10-react-workflow-editor.md) - React Flow integration and patterns
 
 ## Quick Start
 
@@ -33,8 +36,13 @@ When creating a new module landing page:
 
 ## Tech Stack
 
-- **Laravel 12** - PHP Framework
-- **Filament 4** - Admin Panel
-- **Livewire 3** - Dynamic Components
+**Primary Stack (TALL):**
 - **Tailwind CSS v4** - Styling (CSS-first config)
 - **Alpine.js** - JavaScript (included with Filament)
+- **Laravel 12** - PHP Framework
+- **Livewire 3** - Dynamic Components
+- **Filament 4** - Admin Panel
+- **Vite** - Frontend Build Tool
+
+**Workflow Module Only:**
+- **React 19** - Used exclusively for the visual workflow editor (React Flow requires React)

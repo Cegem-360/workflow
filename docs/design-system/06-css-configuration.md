@@ -292,6 +292,31 @@ The Cégem360 design system uses:
 ## Important Notes
 
 1. **Always run `npm run build`** after CSS changes
-2. **Filament imports are required** for the admin panel but also provide CSS variables used by Tailwind classes
-3. **`@filamentStyles` must be in app.blade.php** to inject runtime color variables
-4. **Gray colors come from Filament**, not standard Tailwind - this is why `@filamentStyles` is critical
+2. **Both CSS imports AND blade directive are required:**
+   - **CSS imports in app.css** → Compiles Filament component styles into your Vite bundle
+   - **`@filamentStyles` in blade layouts** → Injects runtime CSS variables (grays, colors)
+3. **Gray colors come from Filament**, not standard Tailwind - this is why `@filamentStyles` is critical
+4. **Missing either one causes issues:**
+   - Missing CSS imports → Filament components unstyled
+   - Missing `@filamentStyles` → Dark borders, broken grays
+
+## Common CSS Import Issues
+
+If borders appear dark instead of light gray, or Filament components look broken:
+
+1. Verify `app.css` has all Filament imports:
+```css
+@import "tailwindcss";
+@import "../../vendor/filament/support/resources/css/index.css";
+@import "../../vendor/filament/actions/resources/css/index.css";
+@import "../../vendor/filament/forms/resources/css/index.css";
+@import "../../vendor/filament/infolists/resources/css/index.css";
+@import "../../vendor/filament/notifications/resources/css/index.css";
+@import "../../vendor/filament/schemas/resources/css/index.css";
+@import "../../vendor/filament/tables/resources/css/index.css";
+@import "../../vendor/filament/widgets/resources/css/index.css";
+```
+
+2. Verify blade layout has `@filamentStyles` in `<head>` and `@filamentScripts` before `</body>`
+
+3. Run `npm run build` to recompile assets

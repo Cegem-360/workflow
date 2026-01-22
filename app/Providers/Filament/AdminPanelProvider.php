@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\Auth\Login;
+use App\Filament\Pages\Auth\Register;
 use App\Filament\Pages\Tenancy\RegisterTeam;
 use App\Http\Middleware\SetLocale;
 use App\Models\Team;
@@ -37,7 +38,7 @@ final class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login(Login::class)
-            ->registration()
+            ->registration(Register::class)
             ->emailVerification()
             ->renderHook(
                 PanelsRenderHook::USER_MENU_BEFORE,
