@@ -48,13 +48,7 @@ const nodeCategories = {
     },
     actions: {
         label: "Actions",
-        nodes: [
-            "apiAction",
-            "emailAction",
-            "databaseAction",
-            "scriptAction",
-            "webhookAction",
-        ],
+        nodes: ["apiAction", "emailAction", "databaseAction", "scriptAction", "webhookAction"],
     },
     integrations: {
         label: "Integrations",
@@ -113,61 +107,48 @@ const WorkflowSidebar = ({ onDragStart, onSettingsClick }) => {
 
             {/* Node categories with scroll indicator */}
             <div className="flex-1 relative overflow-hidden">
-                <nav
-                    ref={navRef}
-                    className="h-full overflow-y-auto py-4 px-3 space-y-6"
-                >
-                    {Object.entries(nodeCategories).map(
-                        ([categoryKey, { label, nodes }]) => (
-                            <div key={categoryKey}>
-                                <h3 className="px-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
-                                    {label}
-                                </h3>
-                                <ul className="space-y-1">
-                                    {nodes.map((nodeKey) => {
-                                        const config = nodeTypeConfig[nodeKey];
-                                        if (!config) return null;
-                                        const Icon = nodeIcons[nodeKey];
-                                        return (
-                                            <li key={nodeKey}>
-                                                <div
-                                                    draggable
-                                                    onDragStart={(e) =>
-                                                        onDragStart(e, nodeKey)
-                                                    }
-                                                    className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium cursor-grab active:cursor-grabbing text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition group"
-                                                >
-                                                    {Icon && (
-                                                        <Icon
-                                                            className={`w-5 h-5 ${
-                                                                categoryKey ===
-                                                                "triggers"
-                                                                    ? "text-violet-500"
-                                                                    : categoryKey ===
-                                                                        "actions"
-                                                                      ? "text-blue-500"
-                                                                      : categoryKey ===
-                                                                          "integrations"
-                                                                        ? "text-green-500"
-                                                                        : categoryKey ===
-                                                                            "logic"
-                                                                          ? "text-amber-500"
-                                                                          : "text-gray-500"
-                                                            }`}
-                                                        />
-                                                    )}
-                                                    <span className="flex-1">
-                                                        {config.label}
-                                                    </span>
-                                                    <GripVertical className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                </ul>
-                            </div>
-                        ),
-                    )}
+                <nav ref={navRef} className="h-full overflow-y-auto py-4 px-3 space-y-6">
+                    {Object.entries(nodeCategories).map(([categoryKey, { label, nodes }]) => (
+                        <div key={categoryKey}>
+                            <h3 className="px-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+                                {label}
+                            </h3>
+                            <ul className="space-y-1">
+                                {nodes.map((nodeKey) => {
+                                    const config = nodeTypeConfig[nodeKey];
+                                    if (!config) return null;
+                                    const Icon = nodeIcons[nodeKey];
+                                    return (
+                                        <li key={nodeKey}>
+                                            <div
+                                                draggable
+                                                onDragStart={(e) => onDragStart(e, nodeKey)}
+                                                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium cursor-grab active:cursor-grabbing text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition group"
+                                            >
+                                                {Icon && (
+                                                    <Icon
+                                                        className={`w-5 h-5 ${
+                                                            categoryKey === "triggers"
+                                                                ? "text-violet-500"
+                                                                : categoryKey === "actions"
+                                                                  ? "text-blue-500"
+                                                                  : categoryKey === "integrations"
+                                                                    ? "text-green-500"
+                                                                    : categoryKey === "logic"
+                                                                      ? "text-amber-500"
+                                                                      : "text-gray-500"
+                                                        }`}
+                                                    />
+                                                )}
+                                                <span className="flex-1">{config.label}</span>
+                                                <GripVertical className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                            </div>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        </div>
+                    ))}
                 </nav>
 
                 {/* Scroll indicator */}
