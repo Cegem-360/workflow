@@ -10,6 +10,7 @@ When creating a new module, inspect these existing implementations:
 | Controlling | `~/Herd/controlling` | Emerald #10B981 |
 | CRM | `~/Herd/crm` | Blue #3B82F6 |
 | Workflow | `~/Herd/workflow` | Violet #8B5CF6 |
+| Storage-cms (Beszerzés) | `~/Herd/Storage-cms` | Amber #D97706 |
 
 Key files to reference in existing modules:
 - `resources/views/components/layouts/` - Layout components

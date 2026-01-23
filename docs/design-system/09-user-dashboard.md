@@ -40,6 +40,8 @@ resources/views/
 
 ### Basic Component (Read-Only)
 
+Use the `#[Layout]` attribute instead of `->layout()` in render():
+
 ```php
 <?php
 
@@ -47,9 +49,11 @@ declare(strict_types=1);
 
 namespace App\Livewire\Dashboard;
 
-use Illuminate\View\View;
+use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+#[Layout('components.layouts.dashboard')]
 final class Index extends Component
 {
     public function render(): View
@@ -58,7 +62,7 @@ final class Index extends Component
 
         return view('livewire.dashboard.index', [
             'workflows' => $team?->workflows ?? collect(),
-        ])->layout('components.layouts.dashboard');
+        ]);
     }
 }
 ```
@@ -82,9 +86,11 @@ use Filament\Schemas\Components\Decorations\FormActionsDecorations;
 use Filament\Schemas\Concerns\InteractsWithSchemas;
 use Filament\Schemas\Contracts\HasSchemas;
 use Filament\Schemas\Schema;
-use Illuminate\View\View;
+use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 
+#[Layout('components.layouts.dashboard')]
 final class WorkflowsCreate extends Component implements HasActions, HasSchemas
 {
     use InteractsWithActions;
@@ -124,8 +130,7 @@ final class WorkflowsCreate extends Component implements HasActions, HasSchemas
 
     public function render(): View
     {
-        return view('livewire.dashboard.workflows-create')
-            ->layout('components.layouts.dashboard');
+        return view('livewire.dashboard.workflows-create');
     }
 }
 ```

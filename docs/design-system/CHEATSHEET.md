@@ -10,6 +10,7 @@
 | Controlling | `emerald-*` | #10B981 |
 | CRM | `blue-*` | #3B82F6 |
 | Automatizálás | `violet-*` | #8B5CF6 |
+| Beszerzés | `amber-*` | #D97706 |
 
 ### Essential Layout Setup
 

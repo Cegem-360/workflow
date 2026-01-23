@@ -35,6 +35,7 @@ Reference these existing implementations when creating new modules:
 | Controlling | `~/Herd/controlling` | Emerald #10B981 | Financial controlling module |
 | CRM | `~/Herd/crm` | Blue #3B82F6 | Customer relationship management |
 | Workflow | `~/Herd/workflow` | Violet #8B5CF6 | Automation & workflow editor |
+| Storage-cms (Beszerzés) | `~/Herd/Storage-cms` | Amber #D97706 | Procurement & logistics management |
 
 ## Module Color Reference
 
@@ -44,6 +45,7 @@ Reference these existing implementations when creating new modules:
 | Controlling | Emerald | #10B981 | `emerald-*` |
 | CRM | Blue | #3B82F6 | `blue-*` |
 | Automatizálás (Workflow) | Violet | #8B5CF6 | `violet-*` |
+| Beszerzés (Storage-cms) | Amber | #D97706 | `amber-*` |
 
 ## Tech Stack
 
