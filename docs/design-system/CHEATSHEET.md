@@ -179,6 +179,82 @@ vendor/bin/pint      # Format PHP code
 
 ---
 
+## Dashboard List Pages (Filament HasTable)
+
+### Livewire Component Pattern
+
+```php
+#[Layout('components.layouts.dashboard')]
+final class ListProducts extends Component implements HasActions, HasSchemas, HasTable
+{
+    use InteractsWithActions;
+    use InteractsWithSchemas;
+    use InteractsWithTable;
+
+    public function table(Table $table): Table
+    {
+        return ProductsTable::configureDashboard(
+            $table->query(Product::query()->with(['category']))
+        );
+    }
+
+    public function render(): View
+    {
+        return view('livewire.pages.products.list-products');
+    }
+}
+```
+
+### Table Configuration (add to existing *Table.php)
+
+```php
+public static function configureDashboard(Table $table): Table
+{
+    return $table
+        ->columns([/* columns */])
+        ->filters([/* filters */])
+        ->recordActions([
+            Action::make('edit')
+                ->url(fn ($record) => route('filament.admin.resources.products.edit', $record))
+                ->icon(Heroicon::PencilSquare)
+                ->color('gray'),
+        ])
+        ->defaultSort('name', 'asc')
+        ->paginated([10, 25, 50, 100]);
+}
+```
+
+### Blade View (~20 lines)
+
+```blade
+<div>
+    {{-- Page header with title + "New" button --}}
+    <div class="mb-6 flex ...">
+        <h1 class="text-2xl font-bold ...">{{ __('Products') }}</h1>
+        <a href="{{ route('...create') }}" class="... bg-amber-600 ...">{{ __('New Product') }}</a>
+    </div>
+
+    {{ $this->table }}
+</div>
+```
+
+### Key Interfaces & Traits
+
+| Interface | Trait |
+|-----------|-------|
+| `HasTable` | `InteractsWithTable` |
+| `HasSchemas` | `InteractsWithSchemas` |
+| `HasActions` | `InteractsWithActions` |
+
+### Pre-filtered Queries
+
+```php
+// Filter by enum value
+$table->query(IntrastatDeclaration::query()->where('direction', IntrastatDirection::ARRIVAL))
+```
+
+---
+
 ## React Components (Workflow Module Only)
 
 > React is used **only** for the workflow editor (React Flow requires it). All other modules use the TALL stack.

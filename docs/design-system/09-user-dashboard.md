@@ -324,6 +324,161 @@ if (!$team || $workflow->team_id !== $team->id) {
 
 ---
 
+## List Component with Filament Tables (HasTable)
+
+For list pages with search, sorting, filtering, and pagination, use Filament's `HasTable` interface. This pattern eliminates 100+ lines of custom HTML per page.
+
+### Livewire Component
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Livewire\Pages\Products;
+
+use App\Filament\Resources\Products\Tables\ProductsTable;
+use App\Models\Product;
+use Filament\Actions\Concerns\InteractsWithActions;
+use Filament\Actions\Contracts\HasActions;
+use Filament\Schemas\Concerns\InteractsWithSchemas;
+use Filament\Schemas\Contracts\HasSchemas;
+use Filament\Tables\Concerns\InteractsWithTable;
+use Filament\Tables\Contracts\HasTable;
+use Filament\Tables\Table;
+use Illuminate\Contracts\View\View;
+use Livewire\Attributes\Layout;
+use Livewire\Component;
+
+#[Layout('components.layouts.dashboard')]
+final class ListProducts extends Component implements HasActions, HasSchemas, HasTable
+{
+    use InteractsWithActions;
+    use InteractsWithSchemas;
+    use InteractsWithTable;
+
+    public function table(Table $table): Table
+    {
+        return ProductsTable::configureDashboard(
+            $table->query(Product::query()->with(['category', 'supplier']))
+        );
+    }
+
+    public function render(): View
+    {
+        return view('livewire.pages.products.list-products');
+    }
+}
+```
+
+### Reusable Table Configuration
+
+Add a `configureDashboard()` method to existing Filament Resource table classes:
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace App\Filament\Resources\Products\Tables;
+
+use App\Models\Product;
+use Filament\Actions\Action;
+use Filament\Support\Icons\Heroicon;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+
+final class ProductsTable
+{
+    // Existing configure() for admin panel...
+
+    public static function configureDashboard(Table $table): Table
+    {
+        return $table
+            ->columns([
+                TextColumn::make('sku')
+                    ->label(__('SKU'))
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('name')
+                    ->label(__('Name'))
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('category.name')
+                    ->label(__('Category'))
+                    ->placeholder('-'),
+                TextColumn::make('stock_quantity')
+                    ->label(__('Stock'))
+                    ->numeric()
+                    ->sortable(),
+            ])
+            ->filters([
+                SelectFilter::make('category_id')
+                    ->relationship('category', 'name'),
+            ])
+            ->recordActions([
+                Action::make('edit')
+                    ->url(fn (Product $record): string => route('filament.admin.resources.products.edit', $record))
+                    ->icon(Heroicon::PencilSquare)
+                    ->color('gray'),
+            ])
+            ->defaultSort('name', 'asc')
+            ->paginated([10, 25, 50, 100]);
+    }
+}
+```
+
+### Simplified Blade View (~20 lines)
+
+```blade
+<div>
+    {{-- Page header --}}
+    <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white font-heading">{{ __('Products') }}</h1>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ __('Manage your product catalog') }}</p>
+        </div>
+        <a href="{{ route('filament.admin.resources.products.create') }}"
+            class="inline-flex items-center gap-2 px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-sm font-medium rounded-lg transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            {{ __('New Product') }}
+        </a>
+    </div>
+
+    {{-- Filament Table (provides search, sort, filter, pagination) --}}
+    {{ $this->table }}
+</div>
+```
+
+### Pre-filtered Queries
+
+For pages that show a subset of records (e.g., Intrastat Arrivals vs Dispatches):
+
+```php
+public function table(Table $table): Table
+{
+    return IntrastatInboundsTable::configureDashboard(
+        $table->query(
+            IntrastatDeclaration::query()
+                ->where('direction', IntrastatDirection::ARRIVAL)
+        )
+    );
+}
+```
+
+### Benefits
+
+- **Built-in features:** Search, sorting, filters, pagination
+- **Code reduction:** ~150 lines custom HTML → ~20 lines
+- **Consistency:** Same table behavior as Filament admin panel
+- **Maintainability:** Single source of truth in table configuration class
+- **Dark mode:** Automatic support via Filament
+
+---
+
 ## Notifications
 
 Include Livewire notifications component in layout:
