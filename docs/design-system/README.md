@@ -36,6 +36,9 @@ Reference these existing implementations when creating new modules:
 | CRM | `~/Herd/crm` | Blue #3B82F6 | Customer relationship management |
 | Workflow | `~/Herd/workflow` | Violet #8B5CF6 | Automation & workflow editor |
 | Storage-cms (Beszerzés) | `~/Herd/Storage-cms` | Amber #D97706 | Procurement & logistics management |
+| SEO Eszköz | `~/Herd/stat-analitics` | Violet #7C3AED | AI-powered SEO optimization & analytics |
+| Értékesítés (Sales) | `~/Herd/crm-and-contacts` | Red #ef4444 | Sales management with quotes & invoicing |
+| Digitális Munkalap | `~/Herd/worksheet` | Emerald #10B981 | Mobile-first field service worksheets |
 
 ## Module Color Reference
 
@@ -46,6 +49,9 @@ Reference these existing implementations when creating new modules:
 | CRM | Blue | #3B82F6 | `blue-*` |
 | Automatizálás (Workflow) | Violet | #8B5CF6 | `violet-*` |
 | Beszerzés (Storage-cms) | Amber | #D97706 | `amber-*` |
+| SEO Eszköz | Violet | #7C3AED | `violet-*` |
+| Értékesítés (Sales) | Red | #ef4444 | `red-*` |
+| Digitális Munkalap (Worksheet) | Emerald | #10B981 | `emerald-*` |
 
 ## Tech Stack
 

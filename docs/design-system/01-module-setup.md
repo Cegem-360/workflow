@@ -11,6 +11,11 @@ When creating a new module, inspect these existing implementations:
 | CRM | `~/Herd/crm` | Blue #3B82F6 |
 | Workflow | `~/Herd/workflow` | Violet #8B5CF6 |
 | Storage-cms (Beszerzés) | `~/Herd/Storage-cms` | Amber #D97706 |
+| SEO Eszköz | `~/Herd/stat-analitics` | Violet #7C3AED |
+| Értékesítés (Sales) | `~/Herd/crm-and-contacts` | Red #ef4444 |
+| Digitális Munkalap (Worksheet) | `~/Herd/worksheet` | Emerald #10B981 |
+| MarketingHub | `~/Herd/subscriber` (product page) | Pink #EC4899 |
+| DataMind | `~/Herd/subscriber` (product page) | Violet #8B5CF6 |
 
 Key files to reference in existing modules:
 - `resources/views/components/layouts/` - Layout components

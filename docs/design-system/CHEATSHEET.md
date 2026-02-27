@@ -11,6 +11,11 @@
 | CRM | `blue-*` | #3B82F6 |
 | Automatizálás | `violet-*` | #8B5CF6 |
 | Beszerzés | `amber-*` | #D97706 |
+| SEO Eszköz | `violet-*` | #7C3AED |
+| Értékesítés | `red-*` | #ef4444 |
+| Digitális Munkalap | `emerald-*` | #10B981 |
+| MarketingHub | `pink-*` | #EC4899 |
+| DataMind | `violet-*` | #8B5CF6 |
 
 ### Essential Layout Setup
 

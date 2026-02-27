@@ -12,6 +12,11 @@ Each Cégem360 module has a designated primary color. Use the correct color cons
 | Controlling | Kontrolling | Emerald | #10B981 | `emerald-` |
 | CRM | CRM | Blue | #3B82F6 | `blue-` |
 | Workflow | Automatizálás | Violet | #8B5CF6 | `violet-` |
+| SEO Eszköz | SEO Eszköz | Violet | #7C3AED | `violet-` |
+| Sales | Értékesítés | Red | #ef4444 | `red-` |
+| Worksheet | Digitális Munkalap | Emerald | #10B981 | `emerald-` |
+| MarketingHub | MarketingHub | Pink | #EC4899 | `pink-` |
+| DataMind | DataMind | Violet | #8B5CF6 | `violet-` |
 
 ### Color Usage Guide
 
