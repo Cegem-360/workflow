@@ -1,6 +1,9 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import "./bootstrap";
+
+// Import images for Vite to process
+import.meta.glob("../images/**/*.{png,jpg,jpeg,gif,svg,webp}", { eager: true });
 import AdminApp from "./components/AdminApp";
 import WorkflowsApp from "./components/WorkflowsApp";
 import { ToastProvider } from "./components/ui/toast";
