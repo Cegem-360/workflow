@@ -8,10 +8,9 @@
 4. **Integrations** - Hub showing connected services
 5. **Results/Metrics** - Statistics and outcomes
 6. **Use Cases/Recipes** - 4 practical workflow examples
-7. **Testimonials** - 3 customer quotes
-8. **Pricing** - 3 tiers (Starter, Professional, Enterprise)
-9. **FAQ** - 6-8 accordion items
-10. **CTA** - Final call to action
+7. **Pricing** - 3 tiers (Starter, Professional, Enterprise) — *currently hidden with `@if(false)`*
+8. **FAQ** - 6-8 accordion items
+9. **CTA** - Final call to action
 
 ---
 
@@ -39,23 +38,17 @@
             </p>
 
             {{-- CTA Buttons --}}
-            <div class="flex flex-col sm:flex-row gap-4 justify-center mb-8">
-                <a href="/admin" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white bg-[MODULE_COLOR]-600 rounded-full hover:bg-[MODULE_COLOR]-700 transition-colors shadow-lg">
-                    Próbálja ki 14 napig ingyen
+            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+                <a href="https://cegem360.eu/register" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white bg-[MODULE_COLOR]-600 rounded-full hover:bg-[MODULE_COLOR]-700 transition-colors shadow-lg">
+                    {{ __('Get started') }}
                     <svg class="w-5 h-5"><!-- arrow --></svg>
                 </a>
-                <a href="#" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-[MODULE_COLOR]-700 bg-white border-2 border-[MODULE_COLOR]-200 rounded-full hover:bg-[MODULE_COLOR]-50">
-                    Demó kérése
+                <a href="https://cegem360.eu/kapcsolat" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-[MODULE_COLOR]-700 bg-white border-2 border-[MODULE_COLOR]-200 rounded-full hover:bg-[MODULE_COLOR]-50">
+                    {{ __('Request a demo') }}
                 </a>
-            </div>
-
-            {{-- Trust badges --}}
-            <div class="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-gray-500">
-                <span class="flex items-center gap-1.5">
-                    <svg class="w-4 h-4 text-[MODULE_COLOR]-500"><!-- check --></svg>
-                    Trust point 1
-                </span>
-                <!-- more trust points -->
+                <a href="/login" class="text-sm text-[MODULE_COLOR]-600 hover:text-[MODULE_COLOR]-700 font-medium">
+                    {{ __('Log in to the app') }} →
+                </a>
             </div>
         </div>
 
@@ -203,8 +196,8 @@
                     </li>
                     <!-- more features -->
                 </ul>
-                <a href="/admin" class="block w-full py-3 text-center text-sm font-medium text-[MODULE_COLOR]-600 border-2 border-[MODULE_COLOR]-200 rounded-full hover:bg-[MODULE_COLOR]-50">
-                    Kipróbálom
+                <a href="https://cegem360.eu/register" class="block w-full py-3 text-center text-sm font-medium text-[MODULE_COLOR]-600 border-2 border-[MODULE_COLOR]-200 rounded-full hover:bg-[MODULE_COLOR]-50">
+                    {{ __('Get started') }}
                 </a>
             </div>
 
@@ -224,8 +217,8 @@
                 <ul class="space-y-3 mb-8">
                     <!-- features with checks -->
                 </ul>
-                <a href="/admin" class="block w-full py-3 text-center text-sm font-medium text-white bg-[MODULE_COLOR]-600 rounded-full hover:bg-[MODULE_COLOR]-700">
-                    Kezdés most
+                <a href="https://cegem360.eu/register" class="block w-full py-3 text-center text-sm font-medium text-white bg-[MODULE_COLOR]-600 rounded-full hover:bg-[MODULE_COLOR]-700">
+                    {{ __('Get started') }}
                 </a>
             </div>
 
@@ -296,13 +289,16 @@
         <p class="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
             Compelling final message...
         </p>
-        <div class="flex flex-col sm:flex-row gap-4 justify-center">
-            <a href="/admin" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-[MODULE_COLOR]-600 bg-white rounded-full hover:bg-gray-100">
-                Ingyenes próba indítása
+        <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <a href="https://cegem360.eu/register" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-[MODULE_COLOR]-600 bg-white rounded-full hover:bg-gray-100">
+                {{ __('Get started') }}
                 <svg><!-- arrow --></svg>
             </a>
-            <a href="#" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white border-2 border-white/30 rounded-full hover:bg-white/10">
-                Beszéljen szakértőnkkel
+            <a href="https://cegem360.eu/kapcsolat" class="inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white border-2 border-white/30 rounded-full hover:bg-white/10">
+                {{ __('Request a demo') }}
+            </a>
+            <a href="/login" class="text-sm text-white/80 hover:text-white font-medium">
+                {{ __('Log in to the app') }} →
             </a>
         </div>
     </div>

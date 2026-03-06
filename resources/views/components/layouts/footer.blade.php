@@ -5,20 +5,16 @@
             <!-- Column 1: Logo + Links -->
             <div class="col-span-2 md:col-span-3 lg:col-span-1">
                 <a href="/" class="flex items-center gap-2 mb-5">
-                    <div class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-violet-600 to-purple-600 rounded-lg">
-                        <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
-                        </svg>
-                    </div>
-                    <span class="text-sm font-semibold text-violet-600">Automatizálás</span>
+                    <img src="{{ Vite::asset('resources/images/logo.png') }}" alt="{{ config('app.name') }}" class="h-10">
+                    <span class="text-sm font-semibold text-violet-600">{{ __('Automation') }}</span>
                 </a>
                 <p class="text-sm text-gray-600 mb-4">
-                    Moduláris vállalatirányítási platform magyar ipari cégeknek. Kontrolling, CRM, értékesítés, beszerzés, gyártás és automatizálás – egy helyen.
+                    {{ __('Modular enterprise management platform for Hungarian industrial companies. Controlling, CRM, sales, procurement, manufacturing and automation – in one place.') }}
                 </p>
                 <ul class="space-y-2.5 text-sm text-gray-700">
-                    <li><a href="#arak" class="text-inherit! hover:text-violet-600! transition-colors">Árak</a></li>
-                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">Kapcsolat</a></li>
-                    <li><a href="#gyik" class="text-inherit! hover:text-violet-600! transition-colors">GYIK</a></li>
+                    <li><a href="#arak" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Pricing') }}</a></li>
+                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Contact') }}</a></li>
+                    <li><a href="#gyik" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('FAQ') }}</a></li>
                 </ul>
             </div>
 
@@ -28,16 +24,16 @@
                     class="lg:hidden w-full flex items-center justify-between text-[15px] font-semibold text-gray-900 mb-4"
                     @click="openSection = openSection === 'funkciok' ? null : 'funkciok'"
                 >
-                    Funkciók
+                    {{ __('Features') }}
                     <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': openSection === 'funkciok' }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
-                <h3 class="hidden lg:block text-[15px] font-semibold text-gray-900 mb-4">Funkciók</h3>
+                <h3 class="hidden lg:block text-[15px] font-semibold text-gray-900 mb-4">{{ __('Features') }}</h3>
                 <ul class="space-y-2.5 text-sm text-gray-700" x-show="openSection === 'funkciok' || window.innerWidth >= 1024" x-collapse.duration.300ms>
-                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">Trigger-alapú automatizálás</a></li>
-                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">E-mail automatizálás</a></li>
-                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">Feladat-automatizálás</a></li>
-                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">Értesítések</a></li>
-                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">Workflow-builder</a></li>
+                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Trigger-based automation') }}</a></li>
+                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Email automation') }}</a></li>
+                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Task automation') }}</a></li>
+                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Notifications') }}</a></li>
+                    <li><a href="#funkciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Workflow builder') }}</a></li>
                 </ul>
             </div>
 
@@ -47,15 +43,15 @@
                     class="lg:hidden w-full flex items-center justify-between text-[15px] font-semibold text-gray-900 mb-4"
                     @click="openSection = openSection === 'integraciok' ? null : 'integraciok'"
                 >
-                    Integrációk
+                    {{ __('Integrations') }}
                     <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': openSection === 'integraciok' }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
-                <h3 class="hidden lg:block text-[15px] font-semibold text-gray-900 mb-4">Integrációk</h3>
+                <h3 class="hidden lg:block text-[15px] font-semibold text-gray-900 mb-4">{{ __('Integrations') }}</h3>
                 <ul class="space-y-2.5 text-sm text-gray-700" x-show="openSection === 'integraciok' || window.innerWidth >= 1024" x-collapse.duration.300ms>
-                    <li><a href="#integraciok" class="text-inherit! hover:text-violet-600! transition-colors">CRM modul</a></li>
-                    <li><a href="#integraciok" class="text-inherit! hover:text-violet-600! transition-colors">Értékesítés modul</a></li>
-                    <li><a href="#integraciok" class="text-inherit! hover:text-violet-600! transition-colors">Kontrolling modul</a></li>
-                    <li><a href="#integraciok" class="text-inherit! hover:text-violet-600! transition-colors">Slack/Teams</a></li>
+                    <li><a href="#integraciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('CRM module') }}</a></li>
+                    <li><a href="#integraciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Sales module') }}</a></li>
+                    <li><a href="#integraciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Controlling module') }}</a></li>
+                    <li><a href="#integraciok" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Slack/Teams') }}</a></li>
                 </ul>
             </div>
 
@@ -65,15 +61,15 @@
                     class="lg:hidden w-full flex items-center justify-between text-[15px] font-semibold text-gray-900 mb-4"
                     @click="openSection = openSection === 'tamogatas' ? null : 'tamogatas'"
                 >
-                    Segítség
+                    {{ __('Help') }}
                     <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': openSection === 'tamogatas' }" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </button>
-                <h3 class="hidden lg:block text-[15px] font-semibold text-gray-900 mb-4">Segítség</h3>
+                <h3 class="hidden lg:block text-[15px] font-semibold text-gray-900 mb-4">{{ __('Help') }}</h3>
                 <ul class="space-y-2.5 text-sm text-gray-700" x-show="openSection === 'tamogatas' || window.innerWidth >= 1024" x-collapse.duration.300ms>
-                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">Súgó</a></li>
-                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">Tudásbázis</a></li>
-                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">Kapcsolat</a></li>
-                    <li><a href="#gyik" class="text-inherit! hover:text-violet-600! transition-colors">GYIK</a></li>
+                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Help center') }}</a></li>
+                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Knowledge base') }}</a></li>
+                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Contact') }}</a></li>
+                    <li><a href="#gyik" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('FAQ') }}</a></li>
                 </ul>
             </div>
 
@@ -88,10 +84,10 @@
                 </button>
                 <h3 class="hidden lg:block text-[15px] font-semibold text-gray-900 mb-4">Cégem360</h3>
                 <ul class="space-y-2.5 text-sm text-gray-700" x-show="openSection === 'cegem360' || window.innerWidth >= 1024" x-collapse.duration.300ms>
-                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">Főoldal</a></li>
-                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">Modulok</a></li>
-                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">Rólunk</a></li>
-                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">Referenciák</a></li>
+                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Home') }}</a></li>
+                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('Modules') }}</a></li>
+                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('About us') }}</a></li>
+                    <li><a href="#" class="text-inherit! hover:text-violet-600! transition-colors">{{ __('References') }}</a></li>
                 </ul>
             </div>
         </div>
@@ -119,20 +115,20 @@
             <!-- Bottom row: Legal links -->
             <div class="mt-5 pt-5 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-3">
                 <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-500">
-                    <span class="text-gray-700">Cégem360 Automatizálás a Cégem360 Kft. terméke.</span>
+                    <span class="text-gray-700">{{ __('Cégem360 Automation is a product of Cégem360 Kft.') }}</span>
                 </div>
                 <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-500">
-                    <a href="#" class="hover:text-gray-700 transition-colors">ÁSZF</a>
+                    <a href="#" class="hover:text-gray-700 transition-colors">{{ __('Terms of Service') }}</a>
                     <span class="text-gray-300">|</span>
-                    <a href="#" class="hover:text-gray-700 transition-colors">Adatvédelem</a>
+                    <a href="#" class="hover:text-gray-700 transition-colors">{{ __('Privacy Policy') }}</a>
                     <span class="text-gray-300">|</span>
-                    <a href="#" class="hover:text-gray-700 transition-colors">Cookie szabályzat</a>
+                    <a href="#" class="hover:text-gray-700 transition-colors">{{ __('Cookie Policy') }}</a>
                 </div>
             </div>
 
             <!-- Copyright -->
             <div class="mt-3 text-center sm:text-left text-sm text-gray-400">
-                Minden jog fenntartva. &copy; {{ date('Y') }} Cégem360
+                {{ __('All rights reserved.') }} &copy; {{ date('Y') }} Cégem360
             </div>
         </div>
     </div>
